@@ -1,4 +1,4 @@
-package com.project17.tourbooking
+package com.project17.tourbooking.activities.profile
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -11,16 +11,16 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import com.project17.tourbooking.ui.theme.TourBookingTheme
+import com.project17.tourbooking.activities.profile.ui.theme.TourBookingTheme
 
-class MainActivity : ComponentActivity() {
+class ProfileActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             TourBookingTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
+                    Greeting4(
                         name = "Android",
                         modifier = Modifier.padding(innerPadding)
                     )
@@ -31,7 +31,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
+fun Greeting4(name: String, modifier: Modifier = Modifier) {
     Text(
         text = "Hello $name!",
         modifier = modifier
@@ -40,8 +40,8 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 
 @Preview(showBackground = true)
 @Composable
-fun GreetingPreview() {
+fun GreetingPreview4() {
     TourBookingTheme {
-        Greeting("Android")
+        Greeting4("Android")
     }
 }
