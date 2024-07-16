@@ -4,14 +4,18 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import com.project17.tourbooking.activities.profile.ui.theme.TourBookingTheme
+import androidx.compose.ui.unit.sp
+import com.project17.tourbooking.ui.theme.TourBookingTheme
 
 class ProfileActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -20,8 +24,7 @@ class ProfileActivity : ComponentActivity() {
         setContent {
             TourBookingTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting4(
-                        name = "Android",
+                    ProfileScreen(
                         modifier = Modifier.padding(innerPadding)
                     )
                 }
@@ -31,17 +34,19 @@ class ProfileActivity : ComponentActivity() {
 }
 
 @Composable
-fun Greeting4(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
+fun ProfileScreen(modifier: Modifier = Modifier) {
+    Column(modifier = modifier
+        .fillMaxSize()
+        .wrapContentSize(Alignment.Center))
+    {
+        Text(text = "Profile Screen", fontSize = 20.sp)
+    }
 }
 
 @Preview(showBackground = true)
 @Composable
 fun GreetingPreview4() {
     TourBookingTheme {
-        Greeting4("Android")
+        ProfileScreen()
     }
 }
