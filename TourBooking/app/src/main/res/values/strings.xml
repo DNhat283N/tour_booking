@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">Tour Booking</string>
+    <string name="title_activity_my_trip">MyTrip</string>
+    <string name="title_activity_wish_list">WishListActivity</string>
+    <string name="title_activity_profile">ProfileActivity</string>
+    <string name="app_version">${versionName}"></string>
+    <string name="title_activity_main">MainActivity</string>
 </resources>
