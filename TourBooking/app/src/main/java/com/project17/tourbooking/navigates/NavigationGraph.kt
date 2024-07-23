@@ -1,4 +1,4 @@
-package com.project17.tourbooking.views
+package com.project17.tourbooking.navigates
 
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
@@ -11,17 +11,17 @@ import com.project17.tourbooking.activities.wishlist.WishListScreen
 
 @Composable
 fun BottomNavigationGraph(navController: NavHostController){
-    NavHost(navController, startDestination = BottomNavigationItems.Home.route){
-        composable(BottomNavigationItems.Home.route){
+    NavHost(navController, startDestination = NavigationItems.Home.route){
+        composable(NavigationItems.Home.route){
             HomeScreen()
         }
-        composable(BottomNavigationItems.MyTrip.route){
+        composable(NavigationItems.MyTrip.route){
             MyTripScreen()
         }
-        composable(BottomNavigationItems.WishList.route){
+        composable(NavigationItems.WishList.route){
             WishListScreen()
         }
-        composable(BottomNavigationItems.Profile.route){
+        composable(NavigationItems.Profile.route){
             ProfileScreen()
         }
     }
