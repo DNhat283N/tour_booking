@@ -16,14 +16,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -33,10 +29,9 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.project17.tourbooking.ui.theme.BlackLight100
 import com.project17.tourbooking.ui.theme.TourBookingTheme
-import com.project17.tourbooking.views.BottomNavigationGraph
-import com.project17.tourbooking.views.BottomNavigationItems
+import com.project17.tourbooking.navigates.BottomNavigationGraph
+import com.project17.tourbooking.navigates.NavigationItems
 
 @Composable
 fun BottomNavigation(){
@@ -58,10 +53,10 @@ fun BottomBar(navController: NavHostController){
 
 
     val screens = listOf(
-        BottomNavigationItems.Home,
-        BottomNavigationItems.MyTrip,
-        BottomNavigationItems.WishList,
-        BottomNavigationItems.Profile
+        NavigationItems.Home,
+        NavigationItems.MyTrip,
+        NavigationItems.WishList,
+        NavigationItems.Profile
     )
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -84,7 +79,7 @@ fun BottomBar(navController: NavHostController){
 
 @Composable
 fun RowScope.AddItem(
-    screen: BottomNavigationItems,
+    screen: NavigationItems,
     currentDestination: NavDestination?,
     navController: NavHostController
 ){
