@@ -1,3 +1,20 @@
 <resources>
     <string name="app_name">Tour Booking</string>
+    <string name="title_activity_my_trip">MyTrip</string>
+    <string name="title_activity_wish_list">WishListActivity</string>
+    <string name="title_activity_profile">ProfileActivity</string>
+    <string name="app_version">${versionName}"></string>
+    <string name="title_activity_main">MainActivity</string>
+    <string name="welcome_text">Hi, Nhật!</string>
+    <string name="home_question_text">Where do you\nwant to explore today?</string>
+    <string name="choose_category_text">Choose Category</string>
+    <string name="favorite_place_text">Favorite Place</string>
+    <string name="see_all_text">See All</string>
+    <string name="explore_text">Explore</string>
+    <string name="popular_package_text">Popular Package</string>
+    <string name="search_hint_text">Search destination</string>
+    <string name="icon_notification_description_text">Notification</string>
+    <string name="avatar_description_text">Avatar</string>
+    <string name="search_icon_description_text">Search</string>
+    <string name="discovery_category_name_text">Discovery</string>
 </resources>
