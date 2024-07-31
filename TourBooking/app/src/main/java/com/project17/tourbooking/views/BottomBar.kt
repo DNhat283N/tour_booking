@@ -30,23 +30,11 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.project17.tourbooking.ui.theme.TourBookingTheme
-import com.project17.tourbooking.navigates.BottomNavigationGraph
+import com.project17.tourbooking.navigates.NavigationGraph
 import com.project17.tourbooking.navigates.NavigationItems
+import com.project17.tourbooking.ui.theme.BlackDark900
+import com.project17.tourbooking.ui.theme.BlackWhite0
 
-@Composable
-fun BottomNavigation(){
-    val navController = rememberNavController()
-
-    Scaffold (
-        modifier = Modifier.fillMaxSize(),
-        bottomBar = { BottomBar(navController = navController) }
-    ) {
-        Column(modifier = Modifier
-            .fillMaxSize()) {
-            BottomNavigationGraph(navController = navController)
-        }
-    }
-}
 
 @Composable
 fun BottomBar(navController: NavHostController){
@@ -85,9 +73,9 @@ fun RowScope.AddItem(
 ){
     val selected = currentDestination?.hierarchy?.any {it.route == screen.route} == true
 
-    val background = if (selected) Color.Black else Color.Transparent
+    val background = if (selected) BlackDark900 else Color.Transparent
 
-    val contentColor = if (selected) Color.White else Color.Black
+    val contentColor = if (selected) BlackWhite0 else BlackDark900
 
 
     Box(
@@ -119,13 +107,5 @@ fun RowScope.AddItem(
                 )
             }
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    TourBookingTheme {
-        BottomNavigation()
     }
 }

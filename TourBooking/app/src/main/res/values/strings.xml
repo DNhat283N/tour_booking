@@ -17,4 +17,8 @@
     <string name="avatar_description_text">Avatar</string>
     <string name="search_icon_description_text">Search</string>
     <string name="discovery_category_name_text">Discovery</string>
+    <string name="collapse_text">Collapse</string>
+    <string name="title_activity_trip_detail">TripDetailActivity</string>
+    <string name="booking_button_text">Booking</string>"
+    <string name="sample_text">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</string>
 </resources>
