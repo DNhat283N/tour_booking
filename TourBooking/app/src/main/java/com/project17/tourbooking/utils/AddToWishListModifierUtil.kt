@@ -1,4 +1,4 @@
-package com.project17.tourbooking
+package com.project17.tourbooking.utils
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.padding
@@ -14,5 +14,10 @@ fun Modifier.iconWithBackgroundModifier(): Modifier {
         .padding(16.dp)
         .clip(CircleShape)
         .background(BlackWhite0)
+        .padding(8.dp)
+}
+fun Modifier.iconWithoutBackgroundModifier(): Modifier {
+    return this
+        .background(Color.Transparent)
         .padding(8.dp)
 }

@@ -1,6 +1,6 @@
 package com.project17.tourbooking.utils
 
-data class Package(
+data class TourPackage(
     val name: String,
     val image: Int,
     val price: Double,
