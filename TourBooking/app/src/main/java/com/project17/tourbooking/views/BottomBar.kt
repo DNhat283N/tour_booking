@@ -1,3 +1,4 @@
+import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -20,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -29,7 +31,6 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.project17.tourbooking.ui.theme.TourBookingTheme
 import com.project17.tourbooking.navigates.NavigationGraph
 import com.project17.tourbooking.navigates.NavigationItems
 import com.project17.tourbooking.ui.theme.BlackDark900
@@ -106,6 +107,23 @@ fun RowScope.AddItem(
                     color = contentColor
                 )
             }
+        }
+    }
+}
+
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
+@Composable
+@Preview
+fun BottomBarPreview(){
+    val navController = rememberNavController()
+
+    Scaffold (
+        modifier = Modifier.fillMaxSize(),
+        bottomBar = { BottomBar(navController = navController) }
+    ) {
+        Column(modifier = Modifier
+            .fillMaxSize()) {
+            NavigationGraph(navController = navController, onBottomBarVisibilityChanged = {})
         }
     }
 }
