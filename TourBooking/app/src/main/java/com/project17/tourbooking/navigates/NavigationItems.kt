@@ -10,6 +10,7 @@ sealed class NavigationItems(
 ) {
     object Home: NavigationItems("home", "Home", R.drawable.ic_home, R.drawable.ic_home_focused)
     object MyTrip: NavigationItems("mytrip", "My Trip", R.drawable.ic_mytrip, R.drawable.ic_mytrip_focused)
-    object WishList: NavigationItems("wishlist", "Wish List", R.drawable.ic_wishlist, R.drawable.ic_wishlist_focused)
+    object WishList: NavigationItems("wishlist", "Wish List", R.drawable.ic_wishlist, R.drawable.ic_to_add_to_wishlist_3x)
     object Profile: NavigationItems("profile", "Profile", R.drawable.ic_profile, R.drawable.ic_profile_focused)
+    object TripDetail: NavigationItems("tripdetail", "Trip Detail", 0, 0)
 }
