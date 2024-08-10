@@ -17,10 +17,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.rememberNavController
 import com.project17.tourbooking.navigates.NavigationGraph
 import com.project17.tourbooking.navigates.VisibilityBottomBarScaffold
 import com.project17.tourbooking.ui.theme.TourBookingTheme
+import com.project17.tourbooking.viewmodels.AppViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -32,6 +34,7 @@ class MainActivity : ComponentActivity() {
                 var isBottomBarVisible by remember{
                     mutableStateOf(true)
                 }
+                val appViewModel: AppViewModel = viewModel()
                VisibilityBottomBarScaffold(
                    navController = navController,
                    isBottomBarVisible = isBottomBarVisible
@@ -43,7 +46,8 @@ class MainActivity : ComponentActivity() {
                            onBottomBarVisibilityChanged = {
                                visible ->
                                isBottomBarVisible = visible
-                           }
+                           },
+                           appViewModel = appViewModel
                        )
                    }
                }

@@ -13,4 +13,6 @@ sealed class NavigationItems(
     object WishList: NavigationItems("wishlist", "Wish List", R.drawable.ic_wishlist, R.drawable.ic_to_add_to_wishlist_3x)
     object Profile: NavigationItems("profile", "Profile", R.drawable.ic_profile, R.drawable.ic_profile_focused)
     object TripDetail: NavigationItems("tripdetail", "Trip Detail", 0, 0)
+    object Search: NavigationItems("search", "Search", 0, 0)
+    object SearchFilter: NavigationItems("searchfilter", "Search Filter", 0, 0)
 }
