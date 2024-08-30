@@ -15,7 +15,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -29,6 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -42,8 +45,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.rememberNavController
+import com.google.firebase.Timestamp
 import com.project17.tourbooking.R
+import com.project17.tourbooking.models.Review
 import com.project17.tourbooking.navigates.NavigationItems
 import com.project17.tourbooking.ui.theme.BlackLight100
 import com.project17.tourbooking.ui.theme.BlackLight200
@@ -52,6 +56,9 @@ import com.project17.tourbooking.ui.theme.BlackWhite0
 import com.project17.tourbooking.ui.theme.ErrorDark600
 import com.project17.tourbooking.ui.theme.SuccessDefault500
 import com.project17.tourbooking.ui.theme.Typography
+import java.time.LocalDate
+import java.time.Period
+import java.time.ZoneId
 
 val addedWishListIcon2x = R.drawable.ic_added_to_wishlist_2x
 val addedWishListIcon3x = R.drawable.ic_added_to_wishlist_3x
@@ -303,8 +310,8 @@ fun CategoryItem(
                 shape = RoundedCornerShape(16.dp)
             )
             .border(
-                width = if(isSelected) 2.dp else 1.dp,
-                color = if(isSelected) SuccessDefault500 else BlackLight200,
+                width = if (isSelected) 2.dp else 1.dp,
+                color = if (isSelected) SuccessDefault500 else BlackLight200,
                 shape = RoundedCornerShape(16.dp)
             )
             .padding(4.dp)
@@ -413,5 +420,151 @@ fun TourCardInVertical(tour: Tour, navController: NavHostController, context: Co
     Spacer(modifier = Modifier.width(16.dp))
 }
 
+@Composable
+fun TourSummaryCard(tour: Tour) {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .height(250.dp)
+            .clip(RoundedCornerShape(16.dp))
+    ) {
+        Image(
+            painter = painterResource(id = tour.image),
+            contentDescription = stringResource(id = R.string.image_description_text),
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize()
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+        ) {
+            Column(
+                Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)) {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)) {
+                    Spacer(modifier = Modifier.weight(1f))
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_wishlist_verify),
+                        contentDescription = stringResource(id = R.string.image_description_text),
+                        modifier = Modifier.alpha(if (tour.isAddedToWishList) 1f else 0f)
+                    )
+                }
+                Spacer(modifier = Modifier.weight(1f))
 
+                Column(Modifier.fillMaxWidth()) {
+                    Text(
+                        text = tour.name,
+                        style = Typography.headlineMedium,
+                        color = BlackWhite0
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_location),
+                            contentDescription = "",
+                            tint = Color.White
+                        )
 
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        Text(
+                            text = tour.location,
+                            style = Typography.titleLarge,
+                            color = BlackWhite0
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text(
+                        text = stringResource(id = R.string.people_have_explored_text, 100),
+                        style = Typography.bodyLarge,
+                        color = BlackWhite0
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    GenerateStarFromRating(rating = tour.rate, textColor = BlackWhite0)
+                }
+
+                Spacer(modifier = Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+fun ReviewItem(review: Review){
+    Row(
+        modifier = Modifier.padding(16.dp),
+        verticalAlignment = Alignment.Top
+    ) {
+        // Avatar
+        Image(
+            painter = painterResource(id = R.drawable.default_avatar),
+            contentDescription = "User Avatar",
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .size(48.dp)
+                .clip(CircleShape)
+        )
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        Column(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Yelena Belova",
+                    style = Typography.titleLarge,
+                )
+                Text(
+                    text = calculateReviewDateDisplay(review.createdDate),
+                    color = Color.Gray,
+                    fontSize = 12.sp
+                )
+            }
+
+            GenerateStarFromRating(rating = review.rating.toDouble())
+
+            Text(
+                text = stringResource(id = R.string.sample_text),
+                fontSize = 14.sp,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        }
+    }
+}
+
+fun calculateReviewDateDisplay(reviewDate: Timestamp): String {
+    val reviewLocalDate = reviewDate.toDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
+    val currentDate = LocalDate.now()
+
+    val period = Period.between(reviewLocalDate, currentDate)
+
+    return when {
+        period.years > 0 -> {
+            val years = period.years
+            val months = period.months
+            if (months > 0) {
+                "$years years $months months ago"
+            } else {
+                "$years years ago"
+            }
+        }
+
+        period.months > 0 -> "${period.months} months ago"
+        period.days > 0 -> "${period.days} days ago"
+        else -> "Today"
+    }
+}
