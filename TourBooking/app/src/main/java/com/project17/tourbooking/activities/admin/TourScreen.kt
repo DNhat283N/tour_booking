@@ -1,1 +1,0 @@
-package com.project17.tourbooking.activities.admin
