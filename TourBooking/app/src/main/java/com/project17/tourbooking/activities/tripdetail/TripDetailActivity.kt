@@ -38,6 +38,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.rememberNavController
 import com.project17.tourbooking.R
 import com.project17.tourbooking.R.drawable.fuji_mountain
 import com.project17.tourbooking.models.Review
@@ -74,8 +76,11 @@ class TripDetailActivity : ComponentActivity() {
 }
 
 @Composable
-fun TripDetailScreen() {
-    val tour = Tour("Fuji Mountain", fuji_mountain, 4.5, "Japan", 245.0,true)
+fun TripDetailScreen(navController: NavHostController = rememberNavController(), tourId: String = "") {
+    var tour = Tour("Fuji Mountain", fuji_mountain, 4.5, "Japan", 245.0,true)
+
+    if(!tourId.equals("")){
+    }
     Box(
         Modifier
             .fillMaxSize()

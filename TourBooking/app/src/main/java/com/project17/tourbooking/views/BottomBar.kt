@@ -83,7 +83,7 @@ fun RowScope.AddItem(
 
     Box(
         modifier = Modifier
-            .height(40.dp)
+            .height(50.dp)
             .clip(CircleShape)
             .background(background)
             .clickable(onClick = {

@@ -39,9 +39,26 @@ fun NavigationGraph(navController: NavHostController, onBottomBarVisibilityChang
             onBottomBarVisibilityChanged(true)
             HomeScreen(navController = navController, appViewModel = appViewModel)
         }
+
+        composable(NavigationItems.MyTrip.route){
+            onBottomBarVisibilityChanged(true)
+            MyTripScreen()
+        }
+        composable(NavigationItems.WishList.route){
+            onBottomBarVisibilityChanged(true)
+            WishListScreen()
+        }
+        composable(NavigationItems.Profile.route){
+            onBottomBarVisibilityChanged(true)
+            ProfileScreen()
+        }
+        composable(NavigationItems.TripDetail.route + "/{tourId}"){
+
         composable(NavigationItems.TripDetail.route){
+
             onBottomBarVisibilityChanged(false)
-            TripDetailScreen()
+            val tourId = it.arguments?.getString("tourId")
+            TripDetailScreen(navController, tourId ?: "")
         }
         composable(NavigationItems.Search.route){
             onBottomBarVisibilityChanged(false)
