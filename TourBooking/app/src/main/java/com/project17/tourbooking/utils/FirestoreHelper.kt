@@ -1,457 +1,438 @@
-@file:Suppress("UNREACHABLE_CODE", "UNUSED_EXPRESSION")
 
-package com.project17.tourbooking.utils
-
-import android.annotation.SuppressLint
 import android.net.Uri
-import android.util.Log
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.ListenerRegistration
-import com.google.firebase.firestore.QuerySnapshot
-import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.FirebaseStorage
-import com.google.firebase.storage.ktx.storage
 import com.project17.tourbooking.models.*
-import com.project17.tourbooking.models.Category
-import com.project17.tourbooking.models.Tour
 import kotlinx.coroutines.tasks.await
 import org.mindrot.jbcrypt.BCrypt
-import java.io.ByteArrayOutputStream
-import java.io.InputStream
 import java.util.UUID
 
+
 object FirestoreHelper {
-    @SuppressLint("StaticFieldLeak")
+
     private val db = FirebaseFirestore.getInstance()
     private val storage = FirebaseStorage.getInstance()
 
-    private suspend fun <T : Any> addDocument(collection: String, data: T): String? {
-        return try {
-            val docRef = db.collection(collection).add(data).await()
-            docRef.id
-        } catch (e: Exception) {
-            Log.e("FirestoreHelper", "Error adding document: ${e.message}")
-            null
-        }
-    }
 
-    private suspend fun <T : Any> updateDocument(collection: String, documentId: String, data: T): Boolean {
-        return try {
-            db.collection(collection).document(documentId).set(data).await()
-            true
-        } catch (e: Exception) {
-            Log.e("FirestoreHelper", "Error updating document: ${e.message}")
-            false
-        }
-    }
-
-    private suspend fun deleteDocument(collection: String, documentId: String): Boolean {
-        return try {
-            db.collection(collection).document(documentId).delete().await()
-            true
-        } catch (e: Exception) {
-            Log.e("FirestoreHelper", "Error deleting document: ${e.message}")
-            false
-        }
-    }
-
-    private suspend fun documentExists(collection: String, documentId: String): Boolean {
-        return try {
-            val docSnapshot = db.collection(collection).document(documentId).get().await()
-            docSnapshot.exists()
-        } catch (e: Exception) {
-            Log.e("FirestoreHelper", "Error checking document existence: ${e.message}")
-            false
-        }
-    }
-
-    private suspend fun isFieldUnique(collection: String, fieldName: String, value: String): Boolean {
-        return try {
-            val querySnapshot: QuerySnapshot = db.collection(collection)
-                .whereEqualTo(fieldName, value)
-                .get()
-                .await()
-            querySnapshot.isEmpty
-        } catch (e: Exception) {
-            Log.e("FirestoreHelper", "Error checking field uniqueness: ${e.message}")
-            false
-        }
-    }
-
-    private suspend fun uploadImageToFirebase(uri: Uri): String? {
-        return try {
-            val storageReference = storage.reference.child("avatars/${uri.lastPathSegment}")
-            val inputStream: InputStream? = uri.let { db.app.applicationContext.contentResolver.openInputStream(it) }
-            val byteArrayOutputStream = ByteArrayOutputStream()
-            inputStream?.copyTo(byteArrayOutputStream)
-            val data = byteArrayOutputStream.toByteArray()
-
-            val uploadTask = storageReference.putBytes(data).await()
-            storageReference.downloadUrl.await().toString()
-        } catch (e: Exception) {
-            Log.e("FirestoreHelper", "Error uploading image: ${e.message}")
-            null
-        }
-    }
-
-    private var categoryListener: ListenerRegistration? = null
-
-    suspend fun getAllCategoriesSnapshotListener(
-        onCategoriesUpdated: (Map<String, Category>) -> Unit
-    ) {
-        categoryListener?.remove()  // Remove previous listener if any
-        categoryListener = db.collection("categories")
-            .addSnapshotListener { snapshot, exception ->
-                if (exception != null) {
-                    println("Error fetching categories: ${exception.message}")
-                    return@addSnapshotListener
-                }
-
-                val categories = snapshot?.documents?.associate { doc ->
-                    doc.id to Category(name = doc["name"] as String)
-                } ?: emptyMap()
-
-                onCategoriesUpdated(categories)
-            }
-    }
-
-    // Add, Update, Delete for Category
-    suspend fun addCategory(category: Category) = addDocument("categories", category)
-    suspend fun updateCategory(documentId: String, category: Category) = updateDocument("categories", documentId, category)
-    suspend fun deleteCategory(documentId: String) = deleteDocument("categories", documentId)
-
-
-    // Add, Update, Delete for Tour
-    suspend fun addTour(tour: Tour) = addDocument("tours", tour)
-    suspend fun updateTour(documentId: String, tour: Tour) = updateDocument("tours", documentId, tour)
-    suspend fun deleteTour(documentId: String) = deleteDocument("tours", documentId)
-
-    // Add, Update, Delete for Ticket
-    suspend fun addTicket(ticket: Ticket): String? {
-        // Check if the referenced tour exists
-        return if (documentExists("tours", ticket.tourId)) {
-            addDocument("tickets", ticket)
-        } else {
-            Log.e("FirestoreHelper", "Tour ID ${ticket.tourId} does not exist")
-            null
-        }
-    }
-
-    suspend fun updateTicket(documentId: String, ticket: Ticket): Boolean {
-        // Check if the referenced tour exists
-        return if (documentExists("tours", ticket.tourId)) {
-            updateDocument("tickets", documentId, ticket)
-        } else {
-            Log.e("FirestoreHelper", "Tour ID ${ticket.tourId} does not exist")
-            false
-        }
-    }
-
-    suspend fun deleteTicket(documentId: String) = deleteDocument("tickets", documentId)
-
-    // Add, Update, Delete for CategoryTour
-    suspend fun addCategoryTour(categoryTour: CategoryTour): String? {
-        // Check if both category and tour exist
-        if (documentExists("categories", categoryTour.categoryId) && documentExists("tours", categoryTour.tourId)) {
-            // Check if the combination of categoryId and tourId is unique
-            return if (isFieldUnique("category_tours", "categoryId", categoryTour.categoryId)
-                && isFieldUnique("category_tours", "tourId", categoryTour.tourId)) {
-                addDocument("category_tours", categoryTour)
-            } else {
-                Log.e("FirestoreHelper", "Combination of Category ID ${categoryTour.categoryId} and Tour ID ${categoryTour.tourId} already exists")
-                null
-            }
-        } else {
-            Log.e("FirestoreHelper", "Category ID ${categoryTour.categoryId} or Tour ID ${categoryTour.tourId} does not exist")
-            null
-        }
-        return TODO("Provide the return value")
-    }
-
-    suspend fun updateCategoryTour(documentId: String, categoryTour: CategoryTour): Boolean {
-        // Check if both category and tour exist
-        return if (documentExists("categories", categoryTour.categoryId) && documentExists("tours", categoryTour.tourId)) {
-            updateDocument("category_tours", documentId, categoryTour)
-        } else {
-            Log.e("FirestoreHelper", "Category ID ${categoryTour.categoryId} or Tour ID ${categoryTour.tourId} does not exist")
-            false
-        }
-    }
-
-    suspend fun deleteCategoryTour(documentId: String) = deleteDocument("category_tours", documentId)
-
-    // Add, Update, Delete for Bill
-    suspend fun addBill(bill: Bill) : String? {
-        // Check if the referenced account exists
-        return if (documentExists("accounts", bill.accountId)) {
-            addDocument("bills", bill)
-        } else {
-            Log.e("FirestoreHelper", "Account ID ${bill.accountId} does not exist")
-            null
-        }
-    }
-    suspend fun updateBill(documentId: String, bill: Bill) : Boolean {
-        // Check if the referenced account exists
-        return if (documentExists("accounts", bill.accountId)) {
-            updateDocument("bills", documentId, bill)
-        } else {
-            Log.e("FirestoreHelper", "Account ID ${bill.accountId} does not exist")
-            false
-        }
-    }
-    suspend fun deleteBill(documentId: String) = deleteDocument("bills", documentId)
-
-    // Add, Update, Delete for BillDetail
-    suspend fun addBillDetail(billDetail: BillDetail): String? {
-        // Check if the referenced ticket and bill exist
-        return if (documentExists("tickets", billDetail.ticketId) && documentExists("bills", billDetail.billId)) {
-            addDocument("bill_details", billDetail)
-        } else {
-            Log.e("FirestoreHelper", "Ticket ID ${billDetail.ticketId} or Bill ID ${billDetail.billId} does not exist")
-            null
-        }
-    }
-
-    suspend fun updateBillDetail(documentId: String, billDetail: BillDetail): Boolean {
-        // Check if the referenced ticket and bill exist
-        return if (documentExists("tickets", billDetail.ticketId) && documentExists("bills", billDetail.billId)) {
-            updateDocument("bill_details", documentId, billDetail)
-        } else {
-            Log.e("FirestoreHelper", "Ticket ID ${billDetail.ticketId} or Bill ID ${billDetail.billId} does not exist")
-            false
-        }
-    }
-
-
-
-    suspend fun deleteBillDetail(documentId: String) = deleteDocument("bill_details", documentId)
-
-    fun hashPassword(password: String): String {
-        return BCrypt.hashpw(password, BCrypt.gensalt())
-    }
-
-    fun checkPassword(password: String, hashed: String): Boolean {
-        return BCrypt.checkpw(password, hashed)
-    }
-
-    suspend fun authenticateUser(username: String, password: String): Boolean {
-        val document = FirebaseFirestore.getInstance().collection("accounts").document(username).get().await()
-        val storedPasswordHash = document.getString("password")
-
-        return storedPasswordHash != null && FirestoreHelper.checkPassword(password, storedPasswordHash)
-    }
-
-    suspend fun addAccount(account: Account): Boolean {
-        val hashedPassword = hashPassword(account.password)
-        val newAccount = account.copy(password = hashedPassword)
+    suspend fun uploadImageToFirebase(uri: Uri): String? {
+        val storageRef = storage.reference
+        val imageRef = storageRef.child("images/${UUID.randomUUID()}.jpg")
 
         return try {
-            db.collection("accounts").document(account.username).set(newAccount).await()
-            true
-        } catch (e: Exception) {
-            println("Error adding account: ${e.message}")
-            false
-        }
-    }
-
-    suspend fun uploadImageToFirebaseStorage(imageUri: Uri): String? {
-        return try {
-            // Generate a unique filename for the image
-            val filename = UUID.randomUUID().toString()
-            val storageRef = Firebase.storage.reference.child("avatars/$filename")
-
-            // Upload the image to Firebase Storage
-            val uploadTask = storageRef.putFile(imageUri).await()
-
-            // Get the URL of the uploaded image
+            val uploadTask = imageRef.putFile(uri).await()
             val downloadUrl = uploadTask.storage.downloadUrl.await()
             downloadUrl.toString()
         } catch (e: Exception) {
-            Log.e("FirestoreHelper", "Error uploading image: ${e.message}")
             null
         }
     }
 
-//    fun setCustomClaims(uid: String, role: Role) {
-//        val firebaseAuth = FirebaseAuth.getInstance()
-//        val userRecord = UserRecord.of(uid)
-//
-//        val gson = Gson() // Create a Gson instance
-//        val customClaims = mapOf(
-//            "role" to gson.toJson(role) // Use Gson to convert Role to JSON
-//        )
-//
-//        firebaseAuth.updateAccount(userRecord.buildWithCustomClaims(customClaims))
-//            .addOnCompleteListener { task ->
-//                if (task.isSuccessful) {
-//                    println("Custom claims set successfully")
-//                } else {
-//                    println("Error setting custom claims: ${task.exception}")
-//                }
-//            }
-//    }
-//
+    private val categoriesCollection = db.collection("categories")
 
+    // --------------------- Category ---------------------
+    // Add a new category
+    suspend fun addCategory(category: Category): String {
+        val docRef = categoriesCollection.add(category).await()
+        return docRef.id
+    }
 
-    private suspend fun uploadImage(uri: Uri): String? {
+    // Update an existing category
+    suspend fun updateCategory(id: String, updatedCategory: Category) {
+        categoriesCollection.document(id).set(updatedCategory).await()
+    }
+
+    // Delete a category
+    suspend fun deleteCategory(id: String) {
+        categoriesCollection.document(id).delete().await()
+    }
+
+    // Get all categories
+    suspend fun getCategories(): List<Pair<String, Category>> {
+        return categoriesCollection.get().await().map { document ->
+            document.id to document.toObject(Category::class.java)
+        }
+    }
+
+    // --------------------- Tour ---------------------
+    private val toursCollection = db.collection("tours")
+
+    suspend fun getTours(): List<Pair<String, Tour>> {
+        return toursCollection.get().await().documents.map { doc ->
+            doc.id to doc.toObject(Tour::class.java)!!
+        }
+    }
+
+    suspend fun getTourById(id: String): Tour? {
         return try {
-            val ref = storage.reference.child("avatars/${uri.lastPathSegment}")
-            val uploadTask = ref.putFile(uri).await()
-            ref.downloadUrl.await().toString()
+            val document = toursCollection.document(id).get().await()
+            document.toObject(Tour::class.java)
         } catch (e: Exception) {
-            Log.e("FirestoreHelper", "Error uploading image: $e")
             null
         }
     }
 
-
-    fun getAllAccountsSnapshotListener(onSnapshot: (List<Account>) -> Unit) {
-        db.collection("accounts")
-            .addSnapshotListener { snapshot, e ->
-                if (e != null) {
-                    Log.w("FirestoreHelper", "Listen failed.", e)
-                    return@addSnapshotListener
-                }
-
-                if (snapshot != null && !snapshot.isEmpty) {
-                    val accounts = snapshot.documents.mapNotNull { it.toObject(Account::class.java) }
-                    onSnapshot(accounts)
-                } else {
-                    Log.d("FirestoreHelper", "Current data: null")
-                }
-            }
+    suspend fun addTour(tour: Tour): String {
+        val docRef = toursCollection.add(tour).await()
+        return docRef.id
     }
 
+    suspend fun updateTour(id: String, tour: Tour) {
+        toursCollection.document(id).set(tour).await()
+    }
 
-    suspend fun updateAccount(username: String, updatedAccount: Account): Boolean {
+    suspend fun deleteTour(id: String) {
+        toursCollection.document(id).delete().await()
+
+
+    }
+
+    // --------------------- Ticket ---------------------
+    suspend fun getTickets(): Result<Map<String, Ticket>> {
         return try {
-            val hashedPassword = hashPassword(updatedAccount.password)
-            val documentRef = db.collection("accounts").document(username)
+            val snapshot = db.collection("tickets").get().await()
+            val tickets = snapshot.documents.associate { it.id to it.toObject(Ticket::class.java)!! }
+            Result.success(tickets)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 
-            // Get current data to keep avatar if not provided
-            val currentData = documentRef.get().await().data
-            val currentAvatar = currentData?.get("avatar") as? String ?: ""
-
-            // Prepare the data to be updated
-            val accountData = mutableMapOf<String, Any>(
-                "username" to updatedAccount.username,
-                "email" to updatedAccount.email,
-                "password" to hashedPassword // Use hashed password here
-            )
-
-            // Only add avatar field if it's not empty or if it needs to be deleted
-            if (updatedAccount.avatar.isNotEmpty() || currentAvatar.isNotEmpty()) {
-                accountData["avatar"] = if (updatedAccount.avatar.isNotEmpty()) {
-                    updatedAccount.avatar
-                } else {
-                    FieldValue.delete()
-                }
+    suspend fun addTicket(ticket: Ticket): Result<Unit> {
+        return try {
+            val newDocRef = db.collection("tickets").document()
+            ticket.copy().let {
+                newDocRef.set(it).await()
             }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 
-            documentRef.update(accountData).await()
+    suspend fun updateTicket(docId: String, ticket: Ticket): Result<Unit> {
+        return try {
+            db.collection("tickets").document(docId).set(ticket).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun deleteTicket(docId: String): Result<Unit> {
+        return try {
+            db.collection("tickets").document(docId).delete().await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    // --------------------- Bill ---------------------
+    suspend fun getBills(): Result<Map<String, Bill>> {
+        return try {
+            val snapshot = db.collection("bills").get().await()
+            val bills = snapshot.documents.associate { it.id to it.toObject(Bill::class.java)!! }
+            Result.success(bills)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun addBill(bill: Bill): Result<Unit> {
+        return try {
+            val newDocRef = db.collection("bills").document()
+            bill.copy().let {
+                newDocRef.set(it).await()
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun updateBill(docId: String, bill: Bill): Result<Unit> {
+        return try {
+            db.collection("bills").document(docId).set(bill).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun deleteBill(docId: String): Result<Unit> {
+        return try {
+            db.collection("bills").document(docId).delete().await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    // --------------------- BillDetail ---------------------
+    suspend fun getBillDetails(): Result<Map<String, BillDetail>> {
+        return try {
+            val snapshot = db.collection("bill_details").get().await()
+            val billDetails = snapshot.documents.associate { it.id to it.toObject(BillDetail::class.java)!! }
+            Result.success(billDetails)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun addBillDetail(billDetail: BillDetail): Result<Unit> {
+        return try {
+            val newDocRef = db.collection("bill_details").document()
+            billDetail.copy().let {
+                newDocRef.set(it).await()
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun updateBillDetail(docId: String, billDetail: BillDetail): Result<Unit> {
+        return try {
+            db.collection("bill_details").document(docId).set(billDetail).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun deleteBillDetail(docId: String): Result<Unit> {
+        return try {
+            db.collection("bill_details").document(docId).delete().await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    // --------------------- Account ---------------------
+
+    private val accountsCollection = db.collection("accounts")
+
+    suspend fun addAccount(account: Account) {
+        val hashedPassword = hashPassword(account.password)
+        val accountWithHashedPassword = account.copy(password = hashedPassword)
+        accountsCollection.document(account.username).set(accountWithHashedPassword).await()
+    }
+
+    suspend fun updateAccount(account: Account) {
+        val accountFromDb = getAccount(account.username)
+        val updatedAccount = if (account.password.isNotEmpty()) {
+            val hashedPassword = hashPassword(account.password)
+            account.copy(password = hashedPassword)
+        } else {
+            account.copy(password = accountFromDb?.password ?: "")
+        }
+        accountsCollection.document(account.username).set(updatedAccount).await()
+    }
+
+    suspend fun deleteAccount(username: String) {
+        accountsCollection.document(username).delete().await()
+    }
+
+    suspend fun getAccount(username: String): Account? {
+        val document = accountsCollection.document(username).get().await()
+        return document.toObject(Account::class.java)
+    }
+
+    suspend fun getAllAccounts(): List<Account> {
+        val snapshot = accountsCollection.get().await()
+        return snapshot.documents.mapNotNull { it.toObject(Account::class.java) }
+    }
+
+    // Mã hóa mật khẩu
+    private fun hashPassword(password: String): String {
+        return BCrypt.hashpw(password, BCrypt.gensalt())
+    }
+
+    // Kiểm tra mật khẩu
+    private fun checkPassword(password: String, hashed: String): Boolean {
+        return BCrypt.checkpw(password, hashed)
+    }
+
+    // Kiểm tra mật khẩu khi đăng nhập
+    suspend fun verifyPassword(username: String, password: String): Boolean {
+        val account = getAccount(username)
+        return account?.let { checkPassword(password, it.password) } ?: false
+    }
+
+    suspend fun authenticateUser(emailOrUsername: String, password: String): Boolean {
+        return try {
+            val query = db.collection("accounts")
+                .whereEqualTo("username", emailOrUsername)
+                .get().await()
+
+            if (query.documents.isNotEmpty()) {
+                val document = query.documents.first()
+                val hashedPassword = document.getString("password")
+
+                if (hashedPassword != null) {
+                    checkPassword(password, hashedPassword)
+                } else {
+                    false
+                }
+            } else {
+                false
+            }
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    suspend fun isEmailExists(email: String): Boolean {
+        return try {
+            val query = db.collection("accounts")
+                .whereEqualTo("email", email)
+                .get()
+                .await()
+
+            query.documents.isNotEmpty() // Trả về true nếu có ít nhất một tài liệu khớp
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    suspend fun updatePassword(email: String, newPassword: String): Boolean {
+        return try {
+            val userRef = db.collection("accounts")
+                .whereEqualTo("email", email)
+                .get()
+                .await()
+                .documents
+                .firstOrNull()
+                ?.reference
+
+            userRef?.update("password", newPassword)?.await()
             true
         } catch (e: Exception) {
-            Log.e("FirestoreHelper", "Error updating account: ${e.message}")
             false
         }
     }
 
-
-    suspend fun deleteAccount(username: String): Boolean {
+    // --------------------- Customer ---------------------
+    suspend fun getCustomers(): Result<Map<String, Customer>> {
         return try {
-            db.collection("accounts").document(username).delete().await()
-            true
+            val snapshot = db.collection("customers").get().await()
+            val customers = snapshot.documents.associate { it.id to it.toObject(Customer::class.java)!! }
+            Result.success(customers)
         } catch (e: Exception) {
-            Log.e("FirestoreHelper", "Error deleting account: $e")
-            false
+            Result.failure(e)
         }
     }
 
-    suspend fun updateCustomer(documentId: String, customer: Customer) : Boolean {
-        return if (isFieldUnique("accounts", "accountId", customer.accountId)) {
-            updateDocument("customers", documentId, customer)
-        } else {
-            Log.e("FirestoreHelper", "Account ID ${customer.accountId} already exists")
-            false
-        }
-    }
-    suspend fun deleteCustomer(documentId: String) = deleteDocument("customers", documentId)
-
-    // Add, Update, Delete for Staff
-    suspend fun addStaff(staff: Staff): String? {
-        // Check if the referenced account exists
-        return if (documentExists("accounts", staff.accountId)
-            && isFieldUnique("staffs", "accountId", staff.accountId)) {
-            addDocument("staffs", staff)
-        } else {
-            Log.e("FirestoreHelper", "Account ID ${staff.accountId} does not exist")
-            null
+    suspend fun addCustomer(customer: Customer): Result<Unit> {
+        return try {
+            val newDocRef = db.collection("customers").document()
+            customer.copy().let {
+                newDocRef.set(it).await()
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 
-    suspend fun updateStaff(documentId: String, staff: Staff): Boolean {
-        // Check if the referenced account exists
-        return if (documentExists("accounts", staff.accountId)) {
-            updateDocument("staffs", documentId, staff)
-        } else {
-            Log.e("FirestoreHelper", "Account ID ${staff.accountId} does not exist")
-            false
+    suspend fun updateCustomer(docId: String, customer: Customer): Result<Unit> {
+        return try {
+            db.collection("customers").document(docId).set(customer).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 
-    suspend fun deleteStaff(documentId: String) = deleteDocument("staffs", documentId)
-
-    // Add, Update, Delete for Review
-    suspend fun addReview(review: Review): String? {
-        // Check if the referenced account and tour exist
-        return if (documentExists("accounts", review.accountId) && documentExists("tours", review.tourId)
-            && isFieldUnique("reviews", "accountId", review.accountId) && isFieldUnique("reviews", "tourId", review.tourId)) {
-            addDocument("reviews", review)
-        } else {
-            Log.e("FirestoreHelper", "Account ID ${review.accountId} or Tour ID ${review.tourId} does not exist")
-            null
+    suspend fun deleteCustomer(docId: String): Result<Unit> {
+        return try {
+            db.collection("customers").document(docId).delete().await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 
-    suspend fun updateReview(documentId: String, review: Review): Boolean {
-        // Check if the referenced account and tour exist
-        return if (documentExists("accounts", review.accountId) && documentExists("tours", review.tourId)
-            && isFieldUnique("reviews", "accountId", review.accountId) && isFieldUnique("reviews", "tourId", review.tourId)) {
-            updateDocument("reviews", documentId, review)
-        } else {
-            Log.e("FirestoreHelper", "Account ID ${review.accountId} or Tour ID ${review.tourId} does not exist")
-            false
+    // --------------------- Review ---------------------
+    suspend fun getReviews(): Result<Map<String, Review>> {
+        return try {
+            val snapshot = db.collection("reviews").get().await()
+            val reviews = snapshot.documents.associate { it.id to it.toObject(Review::class.java)!! }
+            Result.success(reviews)
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 
-    suspend fun deleteReview(documentId: String) = deleteDocument("reviews", documentId)
-
-    // Add, Update, Delete for CustomerOrderTicket
-    suspend fun addCustomerOrderTicket(customerOrderTicket: CustomerOrderTicket): String? {
-        // Check if the referenced account and ticket exist
-        return if (documentExists("accounts", customerOrderTicket.accountId) && documentExists("tickets", customerOrderTicket.ticketId)
-            && isFieldUnique("customer_order_tickets", "accountId", customerOrderTicket.accountId)
-            && isFieldUnique("customer_order_tickets", "ticketId", customerOrderTicket.ticketId)) {
-            addDocument("customer_order_tickets", customerOrderTicket)
-        } else {
-            Log.e("FirestoreHelper", "Account ID ${customerOrderTicket.accountId} or Ticket ID ${customerOrderTicket.ticketId} does not exist")
-            null
+    suspend fun addReview(review: Review): Result<Unit> {
+        return try {
+            val newDocRef = db.collection("reviews").document()
+            review.copy().let {
+                newDocRef.set(it).await()
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 
-    suspend fun updateCustomerOrderTicket(documentId: String, customerOrderTicket: CustomerOrderTicket): Boolean {
-        // Check if the referenced account and ticket exist
-        return if (documentExists("accounts", customerOrderTicket.accountId) && documentExists("tickets", customerOrderTicket.ticketId)
-                && isFieldUnique("customer_order_tickets", "accountId", customerOrderTicket.accountId)
-                && isFieldUnique("customer_order_tickets", "ticketId", customerOrderTicket.ticketId)) {
-            updateDocument("customer_order_tickets", documentId, customerOrderTicket)
-        } else {
-            Log.e("FirestoreHelper", "Account ID ${customerOrderTicket.accountId} or Ticket ID ${customerOrderTicket.ticketId} does not exist")
-            false
+    suspend fun updateReview(docId: String, review: Review): Result<Unit> {
+        return try {
+            db.collection("reviews").document(docId).set(review).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 
-    suspend fun deleteCustomerOrderTicket(documentId: String) = deleteDocument("customer_order_tickets", documentId)
+    suspend fun deleteReview(docId: String): Result<Unit> {
+        return try {
+            db.collection("reviews").document(docId).delete().await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    // --------------------- CustomerOrderTicket ---------------------
+    suspend fun getCustomerOrderTickets(): Result<Map<String, CustomerOrderTicket>> {
+        return try {
+            val snapshot = db.collection("customer_order_tickets").get().await()
+            val customerOrderTickets = snapshot.documents.associate { it.id to it.toObject(CustomerOrderTicket::class.java)!! }
+            Result.success(customerOrderTickets)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun addCustomerOrderTicket(customerOrderTicket: CustomerOrderTicket): Result<Unit> {
+        return try {
+            val newDocRef = db.collection("customer_order_tickets").document()
+            customerOrderTicket.copy().let {
+                newDocRef.set(it).await()
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun updateCustomerOrderTicket(docId: String, customerOrderTicket: CustomerOrderTicket): Result<Unit> {
+        return try {
+            db.collection("customer_order_tickets").document(docId).set(customerOrderTicket).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun deleteCustomerOrderTicket(docId: String): Result<Unit> {
+        return try {
+            db.collection("customer_order_tickets").document(docId).delete().await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }
