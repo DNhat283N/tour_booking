@@ -138,10 +138,10 @@ fun AboutTripSection(tour: Tour){
 @Composable
 fun ReviewSection(tour: Tour){
     val reviews = listOf(
-        Review(5, "", accountId = "1", tourId = "1" ),
-        Review(4, "", accountId = "1", tourId = "1" ),
-        Review(3, "", accountId = "1", tourId = "1" ),
-        Review(1, "", accountId = "1", tourId = "1" )
+        Review(5.0, "", accountId = "1", tourId = "1" ),
+        Review(4.0, "", accountId = "1", tourId = "1" ),
+        Review(3.0, "", accountId = "1", tourId = "1" ),
+        Review(1.0, "", accountId = "1", tourId = "1" )
     )
     Column {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically){
