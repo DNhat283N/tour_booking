@@ -61,7 +61,11 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.navigation.runtime.ktx)
+    implementation(libs.androidx.constraintlayout)
+    implementation(libs.androidx.room.ktx)
+    implementation(libs.androidx.constraintlayout)
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.firebase.functions.ktx)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -78,5 +82,6 @@ dependencies {
     implementation("com.jakewharton.threetenabp:threetenabp:1.4.6")
     implementation("androidx.activity:activity-ktx:1.7.2")
     implementation("io.coil-kt:coil-compose:2.4.0")
+    implementation("com.google.firebase:firebase-functions-ktx:21.0.0")
     implementation("org.mindrot:jbcrypt:0.4")
 }

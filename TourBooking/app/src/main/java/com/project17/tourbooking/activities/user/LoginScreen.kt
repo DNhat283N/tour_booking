@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.project17.tourbooking.R
 import com.project17.tourbooking.ui.theme.Typography
+import kotlinx.coroutines.launch
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -44,6 +45,8 @@ fun LoginScreen(navController: NavController) {
     var password by remember { mutableStateOf("") }
     var rememberMe by remember { mutableStateOf(false) }
     var passwordVisibility by remember { mutableStateOf(false) }
+    var loginError by remember { mutableStateOf<String?>(null) }
+    val coroutineScope = rememberCoroutineScope()
 
     val icon = if (passwordVisibility) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
     val interactionSourceEmail = remember { MutableInteractionSource() }
@@ -145,7 +148,16 @@ fun LoginScreen(navController: NavController) {
 
         // Nút đăng nhập
         Button(
-            onClick = { /* Xử lý đăng nhập */ },
+            onClick = {
+                coroutineScope.launch {
+                    val isAuthenticated = FirestoreHelper.authenticateUser(emailOrUsername, password)
+                    if (isAuthenticated) {
+                        navController.navigate("profile")
+                    } else {
+                        loginError = "Invalid email/username or password"
+                    }
+                }
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp)
@@ -216,5 +228,16 @@ fun LoginScreen(navController: NavController) {
                     .clickable { /* Xử lý đăng nhập bằng Google */ }
             )
         }
+
+        // Hiển thị thông báo lỗi nếu có
+        loginError?.let {
+            Text(
+                text = it,
+                color = Color.Red,
+                style = Typography.bodyLarge,
+                modifier = Modifier.padding(top = 16.dp)
+            )
+        }
     }
 }
+

@@ -63,7 +63,7 @@ fun Explore(navController: NavController){
 
 
         Button(
-            onClick = { navController.navigate("home") },
+            onClick = { navController.navigate("my_trip") },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp)
