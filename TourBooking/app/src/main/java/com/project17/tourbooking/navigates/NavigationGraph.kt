@@ -56,9 +56,10 @@ fun NavigationGraph(navController: NavHostController, onBottomBarVisibilityChang
             onBottomBarVisibilityChanged(true)
             ProfileScreen()
         }
-        composable(NavigationItems.TripDetail.route){
+        composable(NavigationItems.TripDetail.route + "/{tourId}"){
             onBottomBarVisibilityChanged(false)
-            TripDetailScreen()
+            val tourId = it.arguments?.getString("tourId")
+            TripDetailScreen(navController, tourId ?: "")
         }
         composable(NavigationItems.Search.route){
             onBottomBarVisibilityChanged(false)
