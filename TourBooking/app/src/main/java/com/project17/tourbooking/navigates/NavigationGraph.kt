@@ -1,6 +1,9 @@
 package com.project17.tourbooking.navigates
 
 import BottomBar
+import MyTripScreen
+import ProfileScreen
+import WishListScreen
 import android.annotation.SuppressLint
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -11,11 +14,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.project17.tourbooking.activities.home.HomeScreen
-import com.project17.tourbooking.activities.mytrip.MyTripScreen
-import com.project17.tourbooking.activities.profile.ProfileScreen
 import com.project17.tourbooking.activities.search.SearchFilterScreen
 import com.project17.tourbooking.activities.search.SearchScreen
-import com.project17.tourbooking.activities.wishlist.WishListScreen
 import com.project17.tourbooking.activities.tripdetail.TripDetailScreen
 import com.project17.tourbooking.viewmodels.AppViewModel
 
@@ -46,15 +46,15 @@ fun NavigationGraph(navController: NavHostController, onBottomBarVisibilityChang
         }
         composable(NavigationItems.MyTrip.route){
             onBottomBarVisibilityChanged(true)
-            MyTripScreen()
+            MyTripScreen(navController = navController)
         }
         composable(NavigationItems.WishList.route){
             onBottomBarVisibilityChanged(true)
-            WishListScreen()
+            WishListScreen(navController = navController)
         }
         composable(NavigationItems.Profile.route){
             onBottomBarVisibilityChanged(true)
-            ProfileScreen()
+            ProfileScreen(navController)
         }
         composable(NavigationItems.TripDetail.route + "/{tourId}", arguments = listOf(
             navArgument("tourId"){type = NavType.StringType}

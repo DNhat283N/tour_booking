@@ -38,34 +38,41 @@ import androidx.navigation.NavController
 import com.project17.tourbooking.ui.theme.Typography
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.Snackbar
+import androidx.compose.runtime.rememberCoroutineScope
+import com.project17.tourbooking.utils.PasswordUtils
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CreateNewPassword(navController: NavController) {
+fun CreateNewPassword(navController: NavController, email: String) {
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var passwordVisibility by remember { mutableStateOf(false) }
+    var confirmPasswordVisibility by remember { mutableStateOf(false) }
+    var showPasswordMismatchMessage by remember { mutableStateOf(false) }
+    var showUpdateErrorMessage by remember { mutableStateOf(false) }
+
     val interactionSourcePassword = remember { MutableInteractionSource() }
     val isFocusedPassword by interactionSourcePassword.collectIsFocusedAsState()
-    val icon = if (passwordVisibility) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
-    var confirmPasswordVisibility by remember { mutableStateOf(false) }
     val interactionSourceConfirmPassword = remember { MutableInteractionSource() }
     val isFocusedConfirmPassword by interactionSourceConfirmPassword.collectIsFocusedAsState()
-    val icon1 = if (confirmPasswordVisibility) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+    val iconPassword = if (passwordVisibility) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+    val iconConfirmPassword = if (confirmPasswordVisibility) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+
+    val coroutineScope = rememberCoroutineScope()
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
     ) {
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(5.dp)
                 .verticalScroll(rememberScrollState()),
         ) {
-
             Spacer(modifier = Modifier.height(50.dp))
 
             Text(
@@ -98,14 +105,14 @@ fun CreateNewPassword(navController: NavController) {
                 shape = RoundedCornerShape(16.dp),
                 interactionSource = interactionSourcePassword,
                 colors = TextFieldDefaults.outlinedTextFieldColors(
-                    focusedBorderColor = if (isFocusedPassword) Color(0xFFFCD240) else Color.LightGray, // Màu viền khi focus
-                    unfocusedBorderColor = Color.LightGray, // Màu viền khi không focus
-                    focusedLabelColor = if (isFocusedPassword) Color(0xFFFCD240) else Color.LightGray, // Màu label khi focus
-                    unfocusedLabelColor = Color.LightGray // Màu label khi không focus
+                    focusedBorderColor = if (isFocusedPassword) Color(0xFFFCD240) else Color.LightGray,
+                    unfocusedBorderColor = Color.LightGray,
+                    focusedLabelColor = if (isFocusedPassword) Color(0xFFFCD240) else Color.LightGray,
+                    unfocusedLabelColor = Color.LightGray
                 ),
                 trailingIcon = {
                     IconButton(onClick = { passwordVisibility = !passwordVisibility }) {
-                        Icon(imageVector = icon, contentDescription = "Toggle password visibility")
+                        Icon(imageVector = iconPassword, contentDescription = "Toggle password visibility")
                     }
                 }
             )
@@ -122,14 +129,14 @@ fun CreateNewPassword(navController: NavController) {
                 shape = RoundedCornerShape(16.dp),
                 interactionSource = interactionSourceConfirmPassword,
                 colors = TextFieldDefaults.outlinedTextFieldColors(
-                    focusedBorderColor = if (isFocusedConfirmPassword) Color(0xFFFCD240) else Color.LightGray, // Màu viền khi focus
-                    unfocusedBorderColor = Color.LightGray, // Màu viền khi không focus
-                    focusedLabelColor = if (isFocusedConfirmPassword) Color(0xFFFCD240) else Color.LightGray, // Màu label khi focus
-                    unfocusedLabelColor = Color.LightGray // Màu label khi không focus
+                    focusedBorderColor = if (isFocusedConfirmPassword) Color(0xFFFCD240) else Color.LightGray,
+                    unfocusedBorderColor = Color.LightGray,
+                    focusedLabelColor = if (isFocusedConfirmPassword) Color(0xFFFCD240) else Color.LightGray,
+                    unfocusedLabelColor = Color.LightGray
                 ),
                 trailingIcon = {
                     IconButton(onClick = { confirmPasswordVisibility = !confirmPasswordVisibility }) {
-                        Icon(imageVector = icon1, contentDescription = "Toggle password visibility")
+                        Icon(imageVector = iconConfirmPassword, contentDescription = "Toggle password visibility")
                     }
                 }
             )
@@ -146,7 +153,22 @@ fun CreateNewPassword(navController: NavController) {
             Spacer(modifier = Modifier.height(260.dp))
 
             Button(
-                onClick = { navController.navigate("login") },
+                onClick = {
+                    // Kiểm tra mật khẩu
+                    if (password == confirmPassword) {
+                        coroutineScope.launch {
+                            val hashedPassword = PasswordUtils.hashPassword(password)
+                            val success = FirestoreHelper.updatePassword(email, hashedPassword)
+                            if (success) {
+                                navController.navigate("login")
+                            } else {
+                                // Handle error here (e.g., show a toast or dialog)
+                            }
+                        }
+                    } else {
+                        showPasswordMismatchMessage = true
+                    }
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp)
@@ -162,9 +184,35 @@ fun CreateNewPassword(navController: NavController) {
                     style = Typography.headlineSmall,
                 )
             }
+
+            if (showPasswordMismatchMessage) {
+                Snackbar(
+                    modifier = Modifier.padding(16.dp),
+                    action = {
+                        Button(onClick = { showPasswordMismatchMessage = false }) {
+                            Text("Dismiss")
+                        }
+                    }
+                ) {
+                    Text("Passwords do not match.")
+                }
+            }
+
+            if (showUpdateErrorMessage) {
+                Snackbar(
+                    modifier = Modifier.padding(16.dp),
+                    action = {
+                        Button(onClick = { showUpdateErrorMessage = false }) {
+                            Text("Dismiss")
+                        }
+                    }
+                ) {
+                    Text("Error updating password.")
+                }
+            }
         }
         IconButton(
-            onClick =  { navController.navigate("forgot_password") },
+            onClick = { navController.navigate("forgot_password") },
             modifier = Modifier
                 .padding(start = 16.dp)
         ) {
