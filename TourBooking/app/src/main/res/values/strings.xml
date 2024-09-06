@@ -49,8 +49,11 @@
     <string name="clear_all_text">Clear All</string>
     <string name="apply_text">Apply</string>
     <string name="image_description_text">Image</string>
-    <string name="people_have_explored_text"><b>%1$d +</b> people have explored</string>"
+    <string name="people_have_explored_text"><b>%1$d +</b> people have explored</string>
+    "
     <string name="category_text">Category</string>"
     <string name="about_trip_text">About Trip</string>
     <string name="review_text">Review (%1$d)</string>
+    <string name="title_activity_pay">PayActivity</string>
+    <string name="title_activity_pay_detail">PayDetailActivity</string>
 </resources>

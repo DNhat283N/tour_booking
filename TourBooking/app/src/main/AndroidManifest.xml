@@ -3,6 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application
         android:allowBackup="true"
@@ -14,6 +15,16 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.TourBooking"
         tools:targetApi="31">
+        <activity
+            android:name=".activities.pay.PayDetailActivity"
+            android:exported="false"
+            android:label="@string/title_activity_pay_detail"
+            android:theme="@style/Theme.TourBooking" />
+        <activity
+            android:name=".activities.pay.PayActivity"
+            android:exported="true"
+            android:label="@string/title_activity_pay"
+            android:theme="@style/Theme.TourBooking" />
         <activity
             android:name=".activities.search.SearchFilterActivity"
             android:exported="false"
@@ -51,19 +62,21 @@
             android:theme="@style/Theme.TourBooking" />
         <activity
             android:name=".activities.MainActivity"
-            android:exported="false"
-            android:label="Admin"
-            android:theme="@style/Theme.TourBooking" />
-        <activity
-            android:name=".activities.admin.MainActivity"
             android:exported="true"
-            android:label="@string/title_activity_main"
+            android:label="Admin"
             android:theme="@style/Theme.TourBooking">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+        </activity>
+        <activity
+            android:name=".activities.admin.MainActivity"
+            android:exported="true"
+            android:label="@string/title_activity_main"
+            android:theme="@style/Theme.TourBooking">
+
         </activity>
     </application>
 
