@@ -11,7 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import com.project17.tourbooking.activities.pay.ui.theme.TourBookingTheme
+import com.project17.tourbooking.ui.theme.TourBookingTheme
 
 class PayDetailActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

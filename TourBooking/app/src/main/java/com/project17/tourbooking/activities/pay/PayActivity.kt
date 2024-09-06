@@ -62,7 +62,7 @@ class PayActivity : ComponentActivity() {
                         }
                     }
                 ) {
-                    Text(text = "Thanh toán 100.000 VND")
+                    Text(text = "Thanh toán 200USD")
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -81,8 +81,10 @@ class PayActivity : ComponentActivity() {
                                         //Xử lý logic khi người dùng từ chối thanh toán
                                     }
                                     override fun onPaymentError(zaloPayError: ZaloPayError?, zpTransToken: String?, appTransID: String?) {
-                                        ZaloPaySDK.getInstance().navigateToZaloOnStore(context)
-                                        ZaloPaySDK.getInstance().navigateToZaloPayOnStore(context)
+                                        if(zaloPayError == ZaloPayError.PAYMENT_APP_NOT_FOUND){
+                                            ZaloPaySDK.getInstance().navigateToZaloOnStore(context)
+                                            ZaloPaySDK.getInstance().navigateToZaloPayOnStore(context)
+                                        }
                                     }
                                     override fun onPaymentSucceeded(transactionId: String, transToken: String, appTransID: String?) {
                                         //Xử lý logic khi thanh toán thành công

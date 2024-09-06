@@ -7,6 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -79,8 +80,6 @@ class TripDetailActivity : ComponentActivity() {
 fun TripDetailScreen(navController: NavHostController = rememberNavController(), tourId: String = "") {
     var tour = Tour("Fuji Mountain", fuji_mountain, 4.5, "Japan", 245.0,true)
 
-    if(!tourId.equals("")){
-    }
     Box(
         Modifier
             .fillMaxSize()
@@ -91,7 +90,7 @@ fun TripDetailScreen(navController: NavHostController = rememberNavController(),
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState())
         ){
-            NavBarSection(tour)
+            NavBarSection(tour, navController)
             Spacer(modifier = Modifier.height(32.dp))
             TourSummaryCard(tour = tour)
             Spacer(modifier = Modifier.height(32.dp))
@@ -177,7 +176,8 @@ fun ReviewSection(tour: Tour){
 
 @Composable
 fun NavBarSection(
-    tour: Tour
+    tour: Tour,
+    navController: NavHostController = rememberNavController()
 ){
     Row(
         Modifier
@@ -190,6 +190,7 @@ fun NavBarSection(
             contentDescription = "",
             tint = BlackDark900,
             modifier = Modifier.padding(start = 8.dp)
+                .clickable { navController.popBackStack() }
         )
         val context = LocalContext.current
         Text(
