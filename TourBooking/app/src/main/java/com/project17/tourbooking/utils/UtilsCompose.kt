@@ -357,14 +357,9 @@ fun TourCardInVertical(tour: Tour, navController: NavHostController, context: Co
                 shape = RoundedCornerShape(16.dp)
             )
             .clickable(onClick = {
-                Toast
-                    .makeText(
-                        context,
-                        "Navigate to Trip Detail Activity",
-                        Toast.LENGTH_SHORT
-                    )
-                    .show()
-                navController.navigate(NavigationItems.TripDetail.route)
+                val tourId = "tour"
+                //TODO: get tour_id
+                navController.navigate(NavigationItems.TripDetail.route + "/${tourId}")
             })
     ){
         Image(
