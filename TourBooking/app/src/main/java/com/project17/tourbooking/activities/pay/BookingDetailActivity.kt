@@ -1,8 +1,10 @@
 package com.project17.tourbooking.activities.pay
 
-import android.annotation.SuppressLint
+import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -54,6 +56,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.project17.tourbooking.R
 import com.project17.tourbooking.R.drawable.fuji_mountain
+import com.project17.tourbooking.api.CreateOrder
+import com.project17.tourbooking.constant.CurrencyRate
 import com.project17.tourbooking.navigates.NavigationItems
 import com.project17.tourbooking.ui.theme.BlackDark900
 import com.project17.tourbooking.ui.theme.BlackLight200
@@ -64,16 +68,18 @@ import com.project17.tourbooking.ui.theme.ErrorDefault500
 import com.project17.tourbooking.ui.theme.TourBookingTheme
 import com.project17.tourbooking.ui.theme.Typography
 import com.project17.tourbooking.utils.Tour
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
+import vn.zalopay.sdk.Environment
+import vn.zalopay.sdk.ZaloPayError
+import vn.zalopay.sdk.ZaloPaySDK
+import vn.zalopay.sdk.listeners.PayOrderListener
 
-class PayDetailActivity : ComponentActivity() {
+class BookingDetailActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         setContent {
-            val context = LocalContext.current
-            var paymentStatus by remember { mutableStateOf("") }
-            var token by remember { mutableStateOf("") }
-            var isPayButtonEnabled by remember { mutableStateOf(false) }
             TourBookingTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) {innerPadding ->
                     BookingDetailScreen(modifier = Modifier.padding(innerPadding))
@@ -85,10 +91,13 @@ class PayDetailActivity : ComponentActivity() {
 
 @Composable
 fun BookingDetailScreen(navController: NavHostController = rememberNavController(), tourId: String = "", modifier: Modifier = Modifier){
-    var tour = Tour("Fuji Mountain", fuji_mountain, 4.5, "Japan", 245.0, true)
+    var tour = Tour("Fuji Mountain", fuji_mountain, 4.5, "Japan", 1.0, true)
     var customerName by remember { mutableStateOf("Pristina") }
     var contactInfo by remember { mutableStateOf("example@gmail.com") }
     var quantity by remember { mutableIntStateOf(1) }
+
+    val context = LocalContext.current
+    var token by remember { mutableStateOf("") }
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(
@@ -112,12 +121,45 @@ fun BookingDetailScreen(navController: NavHostController = rememberNavController
                 onQuantityChanged = { quantity = it + 1 }
             )
         }
+
         FooterSection(
             tour = tour,
             quantity = quantity,
             onConfirmClick = {
-                navController.navigate(NavigationItems.PayActivity.route + "/${quantity}")
-               // navController.navigate(NavigationItems.BookingPaymentMethod.route + "/${tourId}/${quantity}/${customerName}/${contactInfo}")
+                ZaloPaySDK.init(554, Environment.SANDBOX)
+                val orderApi = CreateOrder()
+                GlobalScope.launch {
+                    Log.d("adfsf", "afdsfsa")
+                    try {
+                        val data = orderApi.createOrder((tour.price.toInt() * quantity  * CurrencyRate.VND).toString())
+                        token = data?.getString("zp_trans_token") ?: ""
+                        Log.d("token_test", "$token")
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                    if (token.isNotEmpty()) {
+                        ZaloPaySDK.getInstance().payOrder(
+                            context as Activity,
+                            token,
+                            "demozpdk://app",
+                            object : PayOrderListener {
+                                override fun onPaymentCanceled(zpTransToken: String?, appTransID: String?) {
+                                    //Xử lý logic khi người dùng từ chối thanh toán
+                                }
+                                override fun onPaymentError(zaloPayError: ZaloPayError?, zpTransToken: String?, appTransID: String?) {
+                                    if(zaloPayError == ZaloPayError.PAYMENT_APP_NOT_FOUND){
+                                        ZaloPaySDK.getInstance().navigateToZaloOnStore(context)
+                                        ZaloPaySDK.getInstance().navigateToZaloPayOnStore(context)
+                                    }
+                                }
+                                override fun onPaymentSucceeded(transactionId: String, transToken: String, appTransID: String?) {
+                                    //Xử lý logic khi thanh toán thành công
+                                    navController.navigate(NavigationItems.Home.route)
+                                }
+                            }
+                        )
+                    }
+                }
             },
             modifier = Modifier.align(Alignment.BottomStart)
         )

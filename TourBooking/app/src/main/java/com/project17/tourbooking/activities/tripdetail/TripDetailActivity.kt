@@ -44,6 +44,7 @@ import androidx.navigation.compose.rememberNavController
 import com.project17.tourbooking.R
 import com.project17.tourbooking.R.drawable.fuji_mountain
 import com.project17.tourbooking.models.Review
+import com.project17.tourbooking.navigates.NavigationItems
 import com.project17.tourbooking.ui.theme.BlackDark900
 import com.project17.tourbooking.ui.theme.BlackLight400
 import com.project17.tourbooking.ui.theme.BlackWhite0
@@ -100,7 +101,7 @@ fun TripDetailScreen(navController: NavHostController = rememberNavController(),
             Spacer(modifier = Modifier.height(32.dp))
             ReviewSection(tour = tour)
         }
-        FooterSection(tour = tour, modifier = Modifier.align(Alignment.BottomStart))
+        FooterSection(tour = tour, onBookingButtonClick = {navController.navigate(NavigationItems.BookingDetail.route + "/${tourId}")}, modifier = Modifier.align(Alignment.BottomStart))
     }
 }
 
@@ -189,7 +190,8 @@ fun NavBarSection(
             painter = painterResource(id = R.drawable.ic_back),
             contentDescription = "",
             tint = BlackDark900,
-            modifier = Modifier.padding(start = 8.dp)
+            modifier = Modifier
+                .padding(start = 8.dp)
                 .clickable { navController.popBackStack() }
         )
         val context = LocalContext.current
@@ -216,7 +218,7 @@ fun NavBarSection(
 
 
 @Composable
-fun FooterSection(tour: Tour,  modifier: Modifier){
+fun FooterSection(tour: Tour, onBookingButtonClick:() -> Unit,  modifier: Modifier){
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -242,7 +244,7 @@ fun FooterSection(tour: Tour,  modifier: Modifier){
             Spacer(modifier = Modifier.weight(1f))
 
             Button(
-                onClick = { /*TODO*/ },
+                onClick = { onBookingButtonClick()},
                 colors = ButtonColors(BrandDefault500, BlackDark900, BrandDefault500, BlackDark900),
                 modifier = Modifier
                     .width(150.dp)
@@ -255,7 +257,6 @@ fun FooterSection(tour: Tour,  modifier: Modifier){
             }
         }
     }
-
 }
 
 @Preview(showBackground = true)
