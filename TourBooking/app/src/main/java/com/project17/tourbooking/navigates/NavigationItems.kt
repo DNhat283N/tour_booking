@@ -15,4 +15,8 @@ sealed class NavigationItems(
     object TripDetail: NavigationItems("tripdetail", "Trip Detail", 0, 0)
     object Search: NavigationItems("search", "Search", 0, 0)
     object SearchFilter: NavigationItems("searchfilter", "Search Filter", 0, 0)
+    object BookingDetail: NavigationItems("bookingdetail", "Booking Detail", 0, 0)
+    object BookingPaymentMethod: NavigationItems("booking", "Payment Method", 0, 0)
+    object BookingSuccess: NavigationItems("bookingsuccess", "Booking Success", 0, 0)
+    object PayActivity: NavigationItems("payactivity", "Pay Activity", 0, 0)
 }
