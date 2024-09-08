@@ -1,9 +1,9 @@
 package com.project17.tourbooking.activities.admin
 
 import ManageAccountsScreen
-import MyTripActivity
-import ProfileActivity
-import YourWishlist
+import MyTripScreen
+import ProfileScreen
+import WishListScreen
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -39,9 +39,9 @@ class MainActivity : ComponentActivity() {
                     }
                     composable("account_created") { AccountCreated(navController) }
                     composable("explore") { Explore(navController) }
-                    composable("my_trip") { MyTripActivity(SearchViewModel(), navController) }
-                    composable("profile") { ProfileActivity(navController) }
-                    composable("wishlist") { YourWishlist(SearchViewModel(), navController) }
+                    composable("my_trip") { MyTripScreen(SearchViewModel(), navController) }
+                    composable("profile") { ProfileScreen(navController) }
+                    composable("wishlist") { WishListScreen(SearchViewModel(), navController) }
                     composable("manage_categories") { ManageCategoriesScreen(navController) }
                     composable("manage_tours") { ManageToursScreen(navController) }
                     composable("edit_tour/{tourId}") { backStackEntry ->

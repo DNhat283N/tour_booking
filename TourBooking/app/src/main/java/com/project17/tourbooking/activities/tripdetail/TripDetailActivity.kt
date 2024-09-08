@@ -7,6 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -43,6 +44,7 @@ import androidx.navigation.compose.rememberNavController
 import com.project17.tourbooking.R
 import com.project17.tourbooking.R.drawable.fuji_mountain
 import com.project17.tourbooking.models.Review
+import com.project17.tourbooking.navigates.NavigationItems
 import com.project17.tourbooking.ui.theme.BlackDark900
 import com.project17.tourbooking.ui.theme.BlackLight400
 import com.project17.tourbooking.ui.theme.BlackWhite0
@@ -79,8 +81,6 @@ class TripDetailActivity : ComponentActivity() {
 fun TripDetailScreen(navController: NavHostController = rememberNavController(), tourId: String = "") {
     var tour = Tour("Fuji Mountain", fuji_mountain, 4.5, "Japan", 245.0,true)
 
-    if(!tourId.equals("")){
-    }
     Box(
         Modifier
             .fillMaxSize()
@@ -91,7 +91,7 @@ fun TripDetailScreen(navController: NavHostController = rememberNavController(),
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState())
         ){
-            NavBarSection(tour)
+            NavBarSection(tour, navController)
             Spacer(modifier = Modifier.height(32.dp))
             TourSummaryCard(tour = tour)
             Spacer(modifier = Modifier.height(32.dp))
@@ -101,7 +101,7 @@ fun TripDetailScreen(navController: NavHostController = rememberNavController(),
             Spacer(modifier = Modifier.height(32.dp))
             ReviewSection(tour = tour)
         }
-        FooterSection(tour = tour, modifier = Modifier.align(Alignment.BottomStart))
+        FooterSection(tour = tour, onBookingButtonClick = {navController.navigate(NavigationItems.BookingDetail.route + "/${tourId}")}, modifier = Modifier.align(Alignment.BottomStart))
     }
 }
 
@@ -177,7 +177,8 @@ fun ReviewSection(tour: Tour){
 
 @Composable
 fun NavBarSection(
-    tour: Tour
+    tour: Tour,
+    navController: NavHostController = rememberNavController()
 ){
     Row(
         Modifier
@@ -189,7 +190,9 @@ fun NavBarSection(
             painter = painterResource(id = R.drawable.ic_back),
             contentDescription = "",
             tint = BlackDark900,
-            modifier = Modifier.padding(start = 8.dp)
+            modifier = Modifier
+                .padding(start = 8.dp)
+                .clickable { navController.popBackStack() }
         )
         val context = LocalContext.current
         Text(
@@ -215,7 +218,7 @@ fun NavBarSection(
 
 
 @Composable
-fun FooterSection(tour: Tour,  modifier: Modifier){
+fun FooterSection(tour: Tour, onBookingButtonClick:() -> Unit,  modifier: Modifier){
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -241,7 +244,7 @@ fun FooterSection(tour: Tour,  modifier: Modifier){
             Spacer(modifier = Modifier.weight(1f))
 
             Button(
-                onClick = { /*TODO*/ },
+                onClick = { onBookingButtonClick()},
                 colors = ButtonColors(BrandDefault500, BlackDark900, BrandDefault500, BlackDark900),
                 modifier = Modifier
                     .width(150.dp)
@@ -254,7 +257,6 @@ fun FooterSection(tour: Tour,  modifier: Modifier){
             }
         }
     }
-
 }
 
 @Preview(showBackground = true)

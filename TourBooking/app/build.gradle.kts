@@ -84,4 +84,5 @@ dependencies {
     implementation("io.coil-kt:coil-compose:2.4.0")
     implementation("com.google.firebase:firebase-functions-ktx:21.0.0")
     implementation("org.mindrot:jbcrypt:0.4")
+    implementation(files("libs/zpdk-release-v3.1.aar"))
 }

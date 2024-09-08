@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.project17.tourbooking.activities.search.SearchBarSection
 import com.project17.tourbooking.activities.search.SearchViewModel
@@ -23,7 +24,7 @@ import com.project17.tourbooking.R
 data class Trip(val name: String, val price: String, val startDate: String, val duration: String)
 
 @Composable
-fun MyTripActivity(searchViewModel: SearchViewModel, NavController: NavController) {
+fun MyTripScreen(searchViewModel: SearchViewModel = viewModel(), navController: NavController) {
     val trips = remember {
         listOf(
             Trip("Trip to Ha Long Bay", "$500", "2024-09-15", "3 days"),
@@ -55,7 +56,7 @@ fun MyTripActivity(searchViewModel: SearchViewModel, NavController: NavControlle
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             items(trips) { trip ->
-                TripItem(trip, NavController)
+                TripItem(trip, navController)
             }
         }
     }

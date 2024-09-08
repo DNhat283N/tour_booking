@@ -268,7 +268,7 @@ fun SearchHeaderSection(
 }
 
 @Composable
-fun SearchBarSection(searchViewModel: SearchViewModel){
+fun SearchBarSection(searchViewModel: SearchViewModel = viewModel()){
     TextField(
         value = searchViewModel.inputValue.value,
         onValueChange = {

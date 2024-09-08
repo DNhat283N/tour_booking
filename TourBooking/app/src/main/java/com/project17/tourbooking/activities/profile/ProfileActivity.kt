@@ -27,7 +27,7 @@ import com.project17.tourbooking.ui.theme.Typography
 
 
 @Composable
-fun ProfileActivity(navController: NavController) {
+fun ProfileScreen(navController: NavController) {
     var showLogoutDialog by remember { mutableStateOf(false) }
     val name = "Cristiano"
     Column(
