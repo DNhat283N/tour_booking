@@ -21,7 +21,6 @@ import com.project17.tourbooking.viewmodels.AppViewModel
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         setContent {
             TourBookingTheme {
                 val navController = rememberNavController()
@@ -32,9 +31,10 @@ class MainActivity : ComponentActivity() {
                VisibilityBottomBarScaffold(
                    navController = navController,
                    isBottomBarVisible = isBottomBarVisible
-               ) {
+               ) {paddingModifier ->
                    Column(modifier = Modifier
-                       .fillMaxSize()) {
+                       .fillMaxSize()
+                       .then(paddingModifier)) {
                        NavigationGraph(
                            navController = navController,
                            onBottomBarVisibilityChanged = {
