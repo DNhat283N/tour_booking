@@ -1,17 +1,27 @@
 package com.project17.tourbooking.navigates
 
 import BottomBar
+import MyTripActivity
+import ProfileActivity
+import YourWishlist
 import android.annotation.SuppressLint
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.project17.tourbooking.activities.home.HomeScreen
+import com.project17.tourbooking.activities.search.SearchBarSection
 import com.project17.tourbooking.activities.search.SearchFilterScreen
 import com.project17.tourbooking.activities.search.SearchScreen
-import com.project17.tourbooking.activities.tripdetail.TripDetailScreen
+//import com.project17.tourbooking.activities.search.SearchScreen
+import com.project17.tourbooking.activities.search.SearchViewModel
+//import com.project17.tourbooking.activities.tripdetail.TripDetailScreen
+import com.project17.tourbooking.utils.AuthViewModel
 import com.project17.tourbooking.viewmodels.AppViewModel
 
 @Composable
@@ -32,41 +42,48 @@ fun VisibilityBottomBarScaffold(
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun NavigationGraph(navController: NavHostController, onBottomBarVisibilityChanged: (Boolean) -> Unit, appViewModel: AppViewModel = viewModel()){
-    NavHost(navController, startDestination = NavigationItems.Home.route, builder = {
-        composable(NavigationItems.Home.route){
+fun NavigationGraph(
+    navController: NavHostController,
+    onBottomBarVisibilityChanged: (Boolean) -> Unit,
+    appViewModel: AppViewModel = viewModel()
+) {
+    NavHost(navController, startDestination = NavigationItems.Home.route) {
+        composable(NavigationItems.Home.route) {
             onBottomBarVisibilityChanged(true)
             HomeScreen(navController = navController, appViewModel = appViewModel)
         }
 
-        composable(NavigationItems.MyTrip.route){
+        composable(NavigationItems.MyTrip.route) {
             onBottomBarVisibilityChanged(true)
-            MyTripScreen()
+            MyTripActivity(SearchViewModel(), navController, AuthViewModel())
         }
-        composable(NavigationItems.WishList.route){
-            onBottomBarVisibilityChanged(true)
-            WishListScreen()
-        }
-        composable(NavigationItems.Profile.route){
-            onBottomBarVisibilityChanged(true)
-            ProfileScreen()
-        }
-        composable(NavigationItems.TripDetail.route + "/{tourId}"){
 
-        composable(NavigationItems.TripDetail.route){
-
-            onBottomBarVisibilityChanged(false)
-            val tourId = it.arguments?.getString("tourId")
-            TripDetailScreen(navController, tourId ?: "")
+        composable(NavigationItems.WishList.route) {
+            onBottomBarVisibilityChanged(true)
+            YourWishlist(SearchViewModel(), navController)
         }
-        composable(NavigationItems.Search.route){
+
+        composable(NavigationItems.Profile.route) {
+            onBottomBarVisibilityChanged(true)
+            ProfileActivity(navController, AuthViewModel())
+        }
+
+//        composable(NavigationItems.TripDetail.route + "/{tourId}") { backStackEntry ->
+//            onBottomBarVisibilityChanged(false)
+//            val tourId = backStackEntry.arguments?.getString("tourId")
+//            TripDetailScreen(navController, tourId ?: "")
+//        }
+
+        composable(NavigationItems.Search.route) {
             onBottomBarVisibilityChanged(false)
             SearchScreen(navController, appViewModel)
         }
-        composable(NavigationItems.SearchFilter.route){
+
+        composable(NavigationItems.SearchFilter.route) {
             onBottomBarVisibilityChanged(false)
             SearchFilterScreen(navController, appViewModel)
         }
-    })
+    }
 }

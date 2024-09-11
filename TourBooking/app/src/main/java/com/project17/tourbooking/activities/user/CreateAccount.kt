@@ -4,6 +4,7 @@ import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -20,6 +21,7 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,6 +41,8 @@ import com.google.firebase.storage.FirebaseStorage
 import com.project17.tourbooking.models.Account
 import com.project17.tourbooking.models.Customer
 import com.project17.tourbooking.ui.theme.Typography
+import com.project17.tourbooking.utils.AuthState
+import com.project17.tourbooking.utils.AuthViewModel
 import com.project17.tourbooking.utils.PasswordUtils
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -47,7 +51,7 @@ import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CreateAccount(navController: NavController) {
+fun CreateAccount(navController: NavController, authViewModel: AuthViewModel) {
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var passwordVisibility by remember { mutableStateOf(false) }
@@ -103,6 +107,24 @@ fun CreateAccount(navController: NavController) {
     val storage = FirebaseStorage.getInstance()
     val coroutineScope = rememberCoroutineScope()
 
+    val authState = authViewModel.authState.observeAsState()
+
+    LaunchedEffect(authState.value) {
+        when (authState.value) {
+            is AuthState.Authenticated -> {
+                navController.navigate("profile") {
+                    popUpTo("login") { inclusive = true }
+                }
+            }
+            is AuthState.Error -> {
+                Toast.makeText(context, (authState.value as AuthState.Error).message, Toast.LENGTH_SHORT).show()
+            }
+            else -> {
+                Unit
+            }
+        }
+    }
+
     fun handleCreateAccount() {
         coroutineScope.launch {
             if (password == confirmPassword) {
@@ -135,7 +157,7 @@ fun CreateAccount(navController: NavController) {
                             dateOfBirth = dateOfBirth?.let { Timestamp(it) } ?: Timestamp.now(),
                             address = address,
                             phoneNumber = phoneNumber,
-                            accountId = accountId
+                            email = email
                         )
                     ).await()
 
@@ -149,13 +171,15 @@ fun CreateAccount(navController: NavController) {
                             .await()
                     }
 
+                    authViewModel.signUp(email, password)
+
                     // Điều hướng đến trang tiếp theo
                     navController.navigate("account_created")
                 } else {
-                    // Xử lý thông báo lỗi: Tên đăng nhập đã tồn tại
+                    Toast.makeText(context, "Email or username already exists", Toast.LENGTH_SHORT).show()
                 }
             } else {
-                // Xử lý thông báo lỗi: Mật khẩu không khớp
+                Toast.makeText(context, "Passwords do not match", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -483,7 +507,9 @@ fun CreateAccount(navController: NavController) {
                 item {
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(
-                        onClick = { handleCreateAccount() },
+                        onClick = {
+                            handleCreateAccount()
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(16.dp)

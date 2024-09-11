@@ -1,15 +1,12 @@
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -22,14 +19,51 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import coil.compose.rememberImagePainter
 import com.project17.tourbooking.R
 import com.project17.tourbooking.ui.theme.Typography
-
+import com.project17.tourbooking.utils.AuthState
+import com.project17.tourbooking.utils.AuthViewModel
 
 @Composable
-fun ProfileActivity(navController: NavController) {
+fun ProfileActivity(navController: NavController, authViewModel: AuthViewModel) {
     var showLogoutDialog by remember { mutableStateOf(false) }
-    val name = "Cristiano"
+    var name by remember { mutableStateOf("Loading...") }
+    var address by remember { mutableStateOf("Loading...") }
+    var avatarUrl by remember { mutableStateOf<String?>(null) }
+
+    val authState = authViewModel.authState.observeAsState()
+
+    LaunchedEffect(authState.value) {
+        when (authState.value) {
+            is AuthState.Authenticated -> {
+                val currentUser = authViewModel.auth.currentUser
+                val currentEmail = currentUser?.email
+
+                if (currentEmail != null) {
+                    FirestoreHelper.getCustomerByEmail(currentEmail) { customer ->
+                        customer?.let {
+                            name = it.fullName
+                            address = it.address
+                        }
+                    }
+
+                    FirestoreHelper.getAvatarUrlFromAccount(currentEmail) { url ->
+                        avatarUrl = url
+                    }
+                }
+            }
+            is AuthState.Error -> {
+                val errorMessage = (authState.value as AuthState.Error).message
+                Log.e("ProfileActivity", errorMessage)
+            }
+            is AuthState.Unauthenticated -> {
+                navController.navigate("login")
+            }
+            else -> Unit
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -47,21 +81,30 @@ fun ProfileActivity(navController: NavController) {
         Spacer(modifier = Modifier.height(16.dp))
 
         Row(
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            // Use Coil to load the image from the URL
             Image(
-                painter = painterResource(id = R.drawable.avatar_placeholder),
+                painter = rememberImagePainter(
+                    data = avatarUrl,
+                    builder = {
+                        placeholder(R.drawable.avatar_placeholder)
+                        error(R.drawable.avatar_placeholder)
+                    }
+                ),
                 contentDescription = "Avatar",
                 modifier = Modifier
                     .size(64.dp)
                     .clip(CircleShape)
             )
 
+            Spacer(modifier = Modifier.width(16.dp))
 
             Column {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text("Hello, $name", style = Typography.headlineSmall)
                 Spacer(modifier = Modifier.height(4.dp))
-                Text("Địa chỉ người dùng", style = Typography.bodyMedium)
+                Text("Address: $address", style = Typography.bodyMedium)
             }
         }
 
@@ -122,6 +165,7 @@ fun ProfileActivity(navController: NavController) {
                 confirmButton = {
                     Button(
                         onClick = {
+                            authViewModel.signOut()
                             navController.navigate("login")
                             showLogoutDialog = false
                         },
