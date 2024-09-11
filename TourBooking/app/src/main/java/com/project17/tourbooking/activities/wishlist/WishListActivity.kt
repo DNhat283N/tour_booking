@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.rememberImagePainter
 import com.project17.tourbooking.R
@@ -34,7 +35,7 @@ data class WishlistItem(
 )
 
 @Composable
-fun YourWishlist(searchViewModel: SearchViewModel, navController: NavController) {
+fun WishListScreen(searchViewModel: SearchViewModel = viewModel(), navController: NavController) {
     val wishlistItems =
         remember {
             listOf(

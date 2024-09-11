@@ -24,7 +24,6 @@ class MainActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         setContent {
             TourBookingTheme {
                 val navController = rememberNavController()
@@ -35,9 +34,10 @@ class MainActivity : ComponentActivity() {
                VisibilityBottomBarScaffold(
                    navController = navController,
                    isBottomBarVisible = isBottomBarVisible
-               ) {
+               ) {paddingModifier ->
                    Column(modifier = Modifier
-                       .fillMaxSize()) {
+                       .fillMaxSize()
+                       .then(paddingModifier)) {
                        NavigationGraph(
                            navController = navController,
                            onBottomBarVisibilityChanged = {

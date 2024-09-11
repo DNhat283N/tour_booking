@@ -423,12 +423,13 @@ fun FavoritePlaceSection(
                 text = stringResource(id = R.string.favorite_place_text),
                 style = Typography.headlineMedium
             )
+            val tourId = ""
             Text(
                 text = stringResource(id = R.string.explore_text),
                 style = Typography.labelSmall,
                 color = BlackLight300,
                 modifier = Modifier.clickable(onClick = {
-                    navController.navigate(NavigationItems.WishList.route)
+                    navController.navigate(NavigationItems.WishList.route )
                 })
             )
         }

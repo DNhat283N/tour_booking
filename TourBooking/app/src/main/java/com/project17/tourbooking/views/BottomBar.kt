@@ -38,7 +38,7 @@ import com.project17.tourbooking.ui.theme.BlackWhite0
 
 
 @Composable
-fun BottomBar(navController: NavHostController){
+fun BottomBar(navController: NavHostController, modifier: Modifier = Modifier){
 
 
     val screens = listOf(
@@ -51,7 +51,7 @@ fun BottomBar(navController: NavHostController){
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
-    Column(Modifier.fillMaxWidth()){
+    Column(modifier = modifier.fillMaxWidth()){
         Row(
             modifier = Modifier
                 .background(Color.White)
@@ -113,19 +113,3 @@ fun RowScope.AddItem(
     }
 }
 
-@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
-@Composable
-@Preview
-fun BottomBarPreview(){
-    val navController = rememberNavController()
-
-    Scaffold (
-        modifier = Modifier.fillMaxSize(),
-        bottomBar = { BottomBar(navController = navController) }
-    ) {
-        Column(modifier = Modifier
-            .fillMaxSize()) {
-            NavigationGraph(navController = navController, onBottomBarVisibilityChanged = {})
-        }
-    }
-}
