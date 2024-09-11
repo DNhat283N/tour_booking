@@ -10,6 +10,11 @@ data class Category(
     constructor() : this("", "")
 }
 
+data class CategoryWithId(
+    val category: Category,
+    val id: String // Using Firestore document ID as the identifier
+)
+
 data class Tour(
     val name: String,
     val openRegistrationDate: Timestamp,
@@ -19,7 +24,7 @@ data class Tour(
     val destination: String,
     val slotQuantity: Int,
     val image: String,
-    val averageRating: Double,
+    var averageRating: Double,
     val categoryId: String
 ){
     // Add a no-argument constructor
@@ -36,11 +41,16 @@ data class Ticket(
     constructor() : this("", 0.0, "")
 }
 
+data class TourWithId(
+    val id: String,
+    val tour: Tour
+)
 
 data class Bill(
     val totalAmount: Double,
     val createdDate: Timestamp = Timestamp.now(),
-    val accountId: String
+    val email: String,
+    val id: String = ""
 ){
     // Add a no-argument constructor
     constructor() : this(0.0, Timestamp.now(), "")
@@ -72,7 +82,7 @@ data class Customer (
     val dateOfBirth: Timestamp,
     val address: String,
     val phoneNumber: String,
-    val accountId: String,
+    val email: String,
 ){
     // Add a no-argument constructor
     constructor() : this("", true, Timestamp.now(), "", "", "")
@@ -83,7 +93,7 @@ data class Review(
     val rating: Double,
     val comment: String,
     val createdDate: Timestamp = Timestamp.now(),
-    val accountId: String,
+    val email: String,
     val tourId: String,
 ){
     // Add a no-argument constructor

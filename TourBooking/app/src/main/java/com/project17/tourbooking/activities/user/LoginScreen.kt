@@ -24,6 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -35,24 +36,42 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.project17.tourbooking.R
 import com.project17.tourbooking.ui.theme.Typography
-import kotlinx.coroutines.launch
+import com.project17.tourbooking.utils.AuthState
+import com.project17.tourbooking.utils.AuthViewModel
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LoginScreen(navController: NavController) {
-    var emailOrUsername by remember { mutableStateOf("") }
+fun LoginScreen(navController: NavController, authViewModel: AuthViewModel) {
+    var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var rememberMe by remember { mutableStateOf(false) }
     var passwordVisibility by remember { mutableStateOf(false) }
     var loginError by remember { mutableStateOf<String?>(null) }
-    val coroutineScope = rememberCoroutineScope()
 
     val icon = if (passwordVisibility) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
     val interactionSourceEmail = remember { MutableInteractionSource() }
     val isFocusedEmail by interactionSourceEmail.collectIsFocusedAsState()
     val interactionSourcePassword = remember { MutableInteractionSource() }
     val isFocusedPassword by interactionSourcePassword.collectIsFocusedAsState()
+
+    val authState = authViewModel.authState.observeAsState()
+    val isUser by authViewModel.isUser.observeAsState(false)
+    val isAdmin by authViewModel.isAdmin.observeAsState(false)
+
+    LaunchedEffect(authState.value) {
+        when (authState.value) {
+            is AuthState.Authenticated -> {
+                if (isUser) {
+                    navController.navigate("home")
+                } else if (isAdmin) {
+                    navController.navigate("manage_overview")
+                }
+            }
+            is AuthState.Error -> loginError = (authState as AuthState.Error).message
+            else -> Unit
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -62,7 +81,6 @@ fun LoginScreen(navController: NavController) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // Logo ứng dụng du lịch
         Image(
             painter = painterResource(id = R.drawable.ic_app_logo),
             contentDescription = "Travel App Logo",
@@ -71,11 +89,10 @@ fun LoginScreen(navController: NavController) {
                 .padding(bottom = 16.dp)
         )
 
-        // Email hoặc Username
         OutlinedTextField(
-            value = emailOrUsername,
-            onValueChange = { emailOrUsername = it },
-            label = { Text("Email or Username", style = Typography.titleMedium, color = Color.LightGray) },
+            value = email,
+            onValueChange = { email = it },
+            label = { Text("Email", style = Typography.titleMedium, color = Color.LightGray) },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
@@ -146,17 +163,9 @@ fun LoginScreen(navController: NavController) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Nút đăng nhập
         Button(
             onClick = {
-                coroutineScope.launch {
-                    val isAuthenticated = FirestoreHelper.authenticateUser(emailOrUsername, password)
-                    if (isAuthenticated) {
-                        navController.navigate("profile")
-                    } else {
-                        loginError = "Invalid email/username or password"
-                    }
-                }
+                authViewModel.login(email, password)
             },
             modifier = Modifier
                 .fillMaxWidth()

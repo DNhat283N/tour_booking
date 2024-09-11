@@ -90,6 +90,5 @@ fun NavigationGraph(navController: NavHostController, onBottomBarVisibilityChang
             val tourId = it.arguments?.getString("tourId")
             BookingDetailScreen(navController, tourId ?: "")
         }
-
     })
 }
