@@ -51,19 +51,17 @@ fun BottomBar(navController: NavHostController, modifier: Modifier = Modifier){
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
-    Column(modifier = modifier.fillMaxWidth()){
-        Row(
-            modifier = Modifier
-                .background(Color.White)
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ){
-            screens.forEach{
-                    screen ->
-                AddItem(screen = screen, currentDestination = currentDestination, navController = navController )
-            }
+    Row(
+        modifier = Modifier
+            .background(Color.White)
+            .fillMaxWidth()
+            .padding(16.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ){
+        screens.forEach{
+                screen ->
+            AddItem(screen = screen, currentDestination = currentDestination, navController = navController )
         }
     }
 }

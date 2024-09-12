@@ -11,12 +11,15 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
@@ -33,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.paint
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -72,7 +76,6 @@ fun AddToWishList(
     tour: WishListItem,
     addedIcon: Int = addedWishListIcon2x,
     toAddIcon: Int = toAddWishListIcon2x,
-    context: Context = LocalContext.current
 ){
     var isInWishlist by remember {
         mutableStateOf(tour.isAddedToWishList)
@@ -94,14 +97,6 @@ fun AddToWishList(
             .clickable(onClick = {
                 isInWishlist = !isInWishlist
                 tour.isAddedToWishList = isInWishlist
-                Toast
-                    .makeText(
-                        context,
-                        if (tour.isAddedToWishList) "Added to Wishlist" else "Removed from Wishlist",
-                        Toast.LENGTH_SHORT
-                    )
-                    .show()
-
                 // TODO: Add to Wishlist or Remove from WishList
             })
     )
@@ -165,7 +160,7 @@ fun TourCardInHorizontal(
     onMeasured: (Dp) -> Unit = {}
 ) {
     val density = LocalDensity.current
-    val context = LocalContext.current
+    val tourId = "1"
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -178,7 +173,7 @@ fun TourCardInHorizontal(
                 shape = RoundedCornerShape(16.dp)
             )
             .clickable(onClick = {
-                navController.navigate(NavigationItems.TripDetail.route)
+                navController.navigate(NavigationItems.TripDetail.route + "/${tourId}")
             })
             .border(
                 width = 1.dp,
@@ -240,7 +235,6 @@ fun TourCardInHorizontal(
                 }
                 AddToWishList(
                     tour = tour,
-                    context = context,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(16.dp))
@@ -253,7 +247,7 @@ fun TourCardInHorizontal(
 @Composable
 fun GenerateStarFromRating(
     rating: Double,
-    textColor: Color = BlackWhite0
+    textColor: Color = BlackWhite0,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -298,7 +292,6 @@ fun GenerateStarFromRating(
 
 @Composable
 fun CategoryItem(
-    imageModifier: Modifier = Modifier,
     category: Category,
     isSelected: Boolean = false,
     onClick:() -> Unit = {}
@@ -325,8 +318,8 @@ fun CategoryItem(
         ) {
             Image(
                 painter = painterResource(id = category.icon),
-                contentDescription = "",
-                modifier = imageModifier
+                contentDescription = stringResource(id = R.string.image_description_text),
+                modifier = Modifier
                     .background(
                         color = BlackLight100,
                         shape = RoundedCornerShape(16.dp)
@@ -335,7 +328,9 @@ fun CategoryItem(
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = stringResource(id = category.name),
-                style = Typography.titleLarge
+                style = Typography.titleLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
             Spacer(modifier = Modifier.width(8.dp))
         }
@@ -344,9 +339,10 @@ fun CategoryItem(
 }
 
 @Composable
-fun TourCardInVertical(tour: Tour, navController: NavHostController, context: Context){
+fun TourCardInVertical(tour: Tour, navController: NavHostController){
     Box(
         modifier = Modifier
+            .fillMaxSize()
             .border(
                 width = 1.dp,
                 color = Color.Transparent,
@@ -357,26 +353,27 @@ fun TourCardInVertical(tour: Tour, navController: NavHostController, context: Co
                 shape = RoundedCornerShape(16.dp)
             )
             .clickable(onClick = {
-                val tourId = "tour"
+                val tourId = "1"
                 //TODO: get tour_id
                 navController.navigate(NavigationItems.TripDetail.route + "/${tourId}")
             })
     ){
+
+
         Image(
             painter = painterResource(id = R.drawable.fuji_mountain),
-            contentDescription = "",
+            contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .fillMaxSize()
                 .clip(RoundedCornerShape(16.dp))
         )
+
         AddToWishList(
             tour = tour,
-            context = context,
             modifier = Modifier
                 .iconWithBackgroundModifier()
                 .align(Alignment.TopEnd)
-
         )
         Column(
             modifier = Modifier
@@ -423,15 +420,10 @@ fun TourSummaryCard(tour: Tour) {
             .height(250.dp)
             .clip(RoundedCornerShape(16.dp))
     ) {
-        Image(
-            painter = painterResource(id = tour.image),
-            contentDescription = stringResource(id = R.string.image_description_text),
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize()
-        )
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .paint(painter = painterResource(id = R.drawable.fuji_mountain), contentScale = ContentScale.Crop)
         ) {
             Column(
                 Modifier
