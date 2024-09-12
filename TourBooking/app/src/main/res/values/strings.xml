@@ -60,8 +60,18 @@
     <string name="title_activity_pay">PayActivity</string>
     <string name="title_activity_pay_detail">PayDetailActivity</string>
     <string name="person_responsible_text">Person Responsible</string>
+    <string name="person_responsible_name_text">Person Responsible Name: </string>
     <string name="contact_info_text">Contact Information</string>
+    <string name="contact_information_text">Contact Information:</string>
     <string name="confirm_text">Confirm</string>
     <string name="total_text">Total</string>
+    <string name="order_total_text">Order Total:</string>
     <string name="member_text">Member</string>
+    <string name="title_activity_booking_success">BookingSuccessActivity</string>
+    <string name="order_placed_successfully_text">Order Placed Successfully</string>
+    <string name="back_to_home_text">Back To Home</string>
+    <string name="view_your_trip_text">View Your Trip</string>
+    <string name="quantity_of_ticket_text">Quantity Of Ticket:</string>
+    <string name="order_placed_information_text">Order Placed Information</string>
+    <string name="placed_order_time_text">Placed Order Time:</string>
 </resources>

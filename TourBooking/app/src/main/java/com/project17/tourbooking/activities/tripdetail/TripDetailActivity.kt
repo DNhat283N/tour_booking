@@ -60,6 +60,7 @@ import com.project17.tourbooking.models.Review
 import com.project17.tourbooking.models.Ticket
 import com.project17.tourbooking.models.Tour
 import com.project17.tourbooking.models.TourWithId
+import com.project17.tourbooking.navigates.NavigationItems
 import com.project17.tourbooking.ui.theme.BlackDark900
 import com.project17.tourbooking.ui.theme.BlackLight400
 import com.project17.tourbooking.ui.theme.BlackWhite0
@@ -128,7 +129,10 @@ fun TripDetailScreen(navController: NavHostController = rememberNavController(),
             }
         }
         if (tour != null) {
-            FooterSection(tour = tour, modifier = Modifier.align(Alignment.BottomStart))
+            FooterSection(
+                tour = tour,
+                modifier = Modifier.align(Alignment.BottomStart),
+                onBookingButtonClick = {navController.navigate(NavigationItems.BookingDetail.route + "/${tourId}")})
         }
     }
 }
@@ -269,7 +273,7 @@ fun NavBarSection(
 
 
 @Composable
-fun FooterSection(tour: Tour,  modifier: Modifier) {
+fun FooterSection(tour: Tour,  modifier: Modifier, onBookingButtonClick:() -> Unit) {
     val toursWithIds = remember { mutableStateListOf<TourWithId>() }
     val ticket = remember { mutableStateListOf<Ticket?>() }
     val price = remember { mutableDoubleStateOf(0.0) }

@@ -24,6 +24,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
@@ -42,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.paint
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -169,6 +172,7 @@ fun TourCardInHorizontal(
     onMeasured: (Dp) -> Unit = {}
 ) {
     val density = LocalDensity.current
+    val tourId = "1"
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -181,7 +185,7 @@ fun TourCardInHorizontal(
                 shape = RoundedCornerShape(16.dp)
             )
             .clickable(onClick = {
-                navController.navigate(NavigationItems.TripDetail.route)
+                navController.navigate(NavigationItems.TripDetail.route + "/${tourId}")
             })
             .border(
                 width = 1.dp,
@@ -254,7 +258,7 @@ fun TourCardInHorizontal(
 @Composable
 fun GenerateStarFromRating(
     rating: Double,
-    textColor: Color = BlackWhite0
+    textColor: Color = BlackWhite0,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -302,7 +306,6 @@ fun GenerateStarFromRating(
 
 @Composable
 fun CategoryItem(
-    imageModifier: Modifier = Modifier,
     category: Category,
     isSelected: Boolean = false,
     onClick: () -> Unit = {}
@@ -329,7 +332,7 @@ fun CategoryItem(
             Image(
                 painter = rememberImagePainter(data = category.icon), // Use Coil's painter for URL
                 contentDescription = null, // Set to null for accessibility
-                modifier = imageModifier
+                modifier = Modifier
                     .size(40.dp) // Adjust the size as per your design
                     .background(
                         color = BlackLight100,
@@ -350,10 +353,12 @@ fun CategoryItem(
 
 
 @Composable
+
 fun TourCardInVertical(tour: Tour, navController: NavHostController, context: Context){
     val tourId = "";
     Box(
         modifier = Modifier
+            .fillMaxSize()
             .border(
                 width = 1.dp,
                 color = Color.Transparent,
@@ -375,6 +380,7 @@ fun TourCardInVertical(tour: Tour, navController: NavHostController, context: Co
                 .clip(RoundedCornerShape(16.dp))
                 .fillMaxSize()
         )
+
         AddToWishList(
             initiallyAddedToWishList = false,
             modifier = Modifier
@@ -435,6 +441,7 @@ fun TourSummaryCard(tour: Tour) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .paint(painter = painterResource(id = R.drawable.fuji_mountain), contentScale = ContentScale.Crop)
         ) {
             Column(
                 Modifier
