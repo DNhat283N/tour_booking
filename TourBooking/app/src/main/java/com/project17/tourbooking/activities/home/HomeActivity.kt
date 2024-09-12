@@ -1,6 +1,8 @@
 package com.project17.tourbooking.activities.home
 
+import FirestoreHelper
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -40,6 +42,7 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -52,12 +55,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
 import coil.compose.AsyncImage
 import com.project17.tourbooking.R
 import com.project17.tourbooking.navigates.NavigationItems
@@ -67,9 +68,11 @@ import com.project17.tourbooking.ui.theme.BlackLight300
 import com.project17.tourbooking.ui.theme.TourBookingTheme
 import com.project17.tourbooking.ui.theme.Typography
 import com.project17.tourbooking.utils.AlertDialogUtil
-import com.project17.tourbooking.utils.Category
+import com.project17.tourbooking.models.Category
+import com.project17.tourbooking.models.Tour
+import com.project17.tourbooking.utils.AuthState
+import com.project17.tourbooking.utils.AuthViewModel
 import com.project17.tourbooking.utils.CategoryItem
-import com.project17.tourbooking.utils.Tour
 import com.project17.tourbooking.utils.TourCardInHorizontal
 import com.project17.tourbooking.utils.TourCardInVertical
 import com.project17.tourbooking.utils.TourPackage
@@ -92,7 +95,8 @@ class HomeActivity : ComponentActivity() {
 }
 
 @Composable
-fun HomeScreen(modifier: Modifier = Modifier, navController: NavHostController = rememberNavController(), appViewModel: AppViewModel = viewModel()) {
+fun HomeScreen(modifier: Modifier = Modifier, navController: NavHostController = rememberNavController(),
+               appViewModel: AppViewModel = viewModel(), authViewModel: AuthViewModel = viewModel()) {
     var isDialogVisible by remember {
         mutableStateOf(false)
     }
@@ -123,7 +127,7 @@ fun HomeScreen(modifier: Modifier = Modifier, navController: NavHostController =
             end = 16.dp
         )
         .verticalScroll(rememberScrollState())) {
-        HeaderSection(navController = navController)
+        HeaderSection(navController = navController, authViewModel = authViewModel)
         Spacer(modifier = Modifier.height(16.dp))
         SearchBarSection(navController, appViewModel)
         Spacer(modifier = Modifier
@@ -145,21 +149,61 @@ fun HomeScreen(modifier: Modifier = Modifier, navController: NavHostController =
 fun HeaderSection(
     modifier: Modifier = Modifier,
     hasUnreadNotification: Boolean = false,
-    navController: NavHostController
+    navController: NavHostController,
+    authViewModel: AuthViewModel // Thêm AuthViewModel để lấy thông tin người dùng
 ) {
     val context = LocalContext.current
-    Row(modifier = modifier
-        .fillMaxWidth(),
+
+    var name by remember { mutableStateOf<String?>(null) }
+    var avatarUrl by remember { mutableStateOf<String?>(null) }
+
+    // Watch the authentication state
+    val authState = authViewModel.authState.observeAsState()
+
+    // LaunchedEffect to fetch user data when authenticated
+    LaunchedEffect(authState.value) {
+        when (authState.value) {
+            is AuthState.Authenticated -> {
+                val currentUser = authViewModel.auth.currentUser
+                val currentEmail = currentUser?.email
+
+                if (currentEmail != null) {
+                    // Fetch customer information from Firestore
+                    FirestoreHelper.getCustomerByEmail(currentEmail) { customer ->
+                        customer?.let {
+                            name = it.fullName // Set the name
+                        }
+                    }
+
+                    // Fetch avatar URL from Firestore
+                    FirestoreHelper.getAvatarUrlFromAccount(currentEmail) { url ->
+                        avatarUrl = url // Set the avatar URL
+                    }
+                }
+            }
+            is AuthState.Error -> {
+                val errorMessage = (authState.value as AuthState.Error).message
+                Log.e("HeaderSection", errorMessage)
+            }
+            is AuthState.Unauthenticated -> {
+                navController.navigate("login")
+            }
+            else -> Unit
+        }
+    }
+
+    Row(
+        modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically)
-    {
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         Row(
             modifier = Modifier
                 .clickable { navController.navigate(NavigationItems.Profile.route) },
             verticalAlignment = Alignment.CenterVertically,
         ) {
             AsyncImage(
-                model = R.drawable.default_avatar,
+                model = avatarUrl ?: R.drawable.default_avatar,
                 contentDescription = stringResource(id = R.string.avatar_description_text),
                 placeholder = painterResource(id = R.drawable.default_avatar),
                 modifier = Modifier
@@ -168,50 +212,55 @@ fun HeaderSection(
                     .clip(RoundedCornerShape(50.dp))
                     .clickable(onClick = {
                         navController.navigate(NavigationItems.Profile.route)
-                    }))
+                    })
+            )
 
             Text(
-                text = stringResource(id = R.string.welcome_text),
+                text = "Hi, ${name ?: stringResource(id = R.string.default_username)}!",
                 modifier = Modifier.padding(start = 10.dp),
-                style = Typography.titleMedium)
+                style = Typography.titleMedium
+            )
         }
 
-        if(hasUnreadNotification){
+        // Notification Icon with Badge
+        if (hasUnreadNotification) {
             BadgedBox(
                 badge = {
                     Badge()
                 },
                 modifier = Modifier.wrapContentSize()
-            ){
+            ) {
                 Icon(
                     painter = painterResource(id = R.drawable.ic_notification),
                     contentDescription = stringResource(id = R.string.icon_notification_description_text),
-                    modifier = Modifier.clickable( onClick = {
-                        //Navigate to NotificationActivity
+                    modifier = Modifier.clickable(onClick = {
+                        // Navigate to NotificationActivity
                     })
                 )
             }
-        }
-        else{
+        } else {
             Icon(
                 painter = painterResource(id = R.drawable.ic_notification),
                 contentDescription = stringResource(id = R.string.icon_notification_description_text),
-                modifier = Modifier.clickable( onClick = {
+                modifier = Modifier.clickable(onClick = {
                     Toast.makeText(context, "Navigate to NotificationActivity", Toast.LENGTH_SHORT).show()
                 })
             )
         }
     }
+
+    // Spacer and extra text section
     Spacer(modifier = Modifier.height(16.dp))
+
     Text(
         text = stringResource(id = R.string.home_question_text),
-        modifier = Modifier
-            .fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth(),
         style = Typography.headlineMedium,
         maxLines = 2,
         overflow = TextOverflow.Clip
     )
 }
+
 
 @Composable
 fun SearchBarSection(navController: NavHostController, appViewModel: AppViewModel){
@@ -259,64 +308,55 @@ fun SearchBarSection(navController: NavHostController, appViewModel: AppViewMode
 }
 
 @Composable
-fun ChooseCategorySection(modifier: Modifier = Modifier, navController: NavHostController, appViewModel: AppViewModel){
-    val categories = listOf(
-        Category(R.string.discovery_category_name_text, R.drawable.ic_discovery),
-        Category(R.string.discovery_category_name_text, R.drawable.ic_discovery),
-        Category(R.string.discovery_category_name_text, R.drawable.ic_discovery),
-        Category(R.string.discovery_category_name_text, R.drawable.ic_discovery),
-        Category(R.string.discovery_category_name_text, R.drawable.ic_discovery),
-        Category(R.string.discovery_category_name_text, R.drawable.ic_discovery),
-        Category(R.string.discovery_category_name_text, R.drawable.ic_discovery)
-    )
-    var isSeeAllClicked by remember{
-        mutableStateOf(false)
+fun ChooseCategorySection(modifier: Modifier = Modifier, navController: NavHostController, appViewModel: AppViewModel) {
+    LaunchedEffect(Unit) {
+        appViewModel.loadCategories(FirestoreHelper)
     }
-    
-    Column(
-        modifier = modifier
-        .fillMaxWidth()){
+
+    var isSeeAllClicked by remember { mutableStateOf(false) }
+
+    Column(modifier = modifier.fillMaxWidth()) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
                 text = stringResource(id = R.string.choose_category_text),
                 style = Typography.headlineMedium
-                )
+            )
             Text(
-                text = if(!isSeeAllClicked) stringResource(id = R.string.see_all_text)
+                text = if (!isSeeAllClicked) stringResource(id = R.string.see_all_text)
                 else stringResource(id = R.string.collapse_text),
                 style = Typography.labelSmall,
                 color = BlackLight300,
-                modifier = Modifier.clickable(onClick = {
-                    isSeeAllClicked = !isSeeAllClicked
-                })
+                modifier = Modifier.clickable { isSeeAllClicked = !isSeeAllClicked }
             )
         }
         Spacer(modifier = Modifier.height(8.dp))
-        if(!isSeeAllClicked){
-            LazyRow(
-                Modifier.height(75.dp)
-            ) {
-                items(categories){ category ->
-                    CategoryItem(category = category, onClick = {
+
+        if (!isSeeAllClicked) {
+            LazyRow {
+                items(appViewModel.categories) { category ->
+                    CategoryItem(category = category, imageModifier = Modifier.fillMaxSize(), onClick = {
                         appViewModel.isChosenCategory.value = true
                         navController.navigate(route = NavigationItems.Search.route)
                     })
                 }
             }
-        }
-        else{
-            CategoryGrid(items = categories, columns = 2, navController = navController, appViewModel = appViewModel )
+        } else {
+            CategoryGrid(items = appViewModel.categories, columns = 2, navController = navController, appViewModel = appViewModel)
         }
     }
 }
 
 @Composable
-fun CategoryGrid(items: List<Category>, columns: Int, navController: NavHostController,appViewModel: AppViewModel) {
+fun CategoryGrid(
+    items: List<Category>,
+    columns: Int,
+    navController: NavHostController,
+    appViewModel: AppViewModel
+) {
     Column(
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -333,13 +373,19 @@ fun CategoryGrid(items: List<Category>, columns: Int, navController: NavHostCont
                             .fillMaxWidth()
                             .weight(itemWeight)
                     ) {
-                        CategoryItem(category = item, onClick = {
-                            appViewModel.isChosenCategory.value = true
-                            navController.navigate(route = NavigationItems.Search.route)
-                        })
+                        CategoryItem(
+                            category = item,
+                            isSelected = appViewModel.selectedCategory.value == item,
+                            onClick = {
+                                appViewModel.selectCategory(item)  // Update selected category
+                                appViewModel.isChosenCategory.value = true
+                                navController.navigate(route = NavigationItems.Search.route)
+                            }
+                        )
                     }
                 }
-                repeat(columns - rowItems.size){
+                // Add spacers for any missing columns in the row
+                repeat(columns - rowItems.size) {
                     Spacer(modifier = Modifier.weight(itemWeight))
                 }
             }
@@ -347,21 +393,20 @@ fun CategoryGrid(items: List<Category>, columns: Int, navController: NavHostCont
     }
 }
 
+
 @Composable
 fun FavoritePlaceSection(
     navController: NavHostController,
     modifier: Modifier = Modifier
 ) {
-    val tours = remember {
-        mutableStateListOf(
-            Tour("Fuji Mountain", R.drawable.fuji_mountain, 4.5, "Japan",4.5,  true),
-            Tour("Fuji Mountain", R.drawable.fuji_mountain, 4.5, "Japan",6.8,  true),
-            Tour("Fuji Mountain", R.drawable.fuji_mountain, 4.5, "Japan",8.7,  true),
-            Tour("Fuji Mountain", R.drawable.fuji_mountain, 4.5, "Japan",0.5,  true),
-            Tour("Fuji Mountain", R.drawable.fuji_mountain, 4.5, "Japan")
-        )
-    }
     val context = LocalContext.current
+    val tours = remember { mutableStateListOf<Tour>() }
+
+    LaunchedEffect(Unit) {
+        val loadedTours = FirestoreHelper.loadTours()
+        val highRatedTours = loadedTours.filter { it.averageRating > 4.0 }
+        tours.addAll(highRatedTours)
+    }
 
     Column(
         modifier = modifier
@@ -388,30 +433,34 @@ fun FavoritePlaceSection(
                 })
             )
         }
-        Spacer(modifier = Modifier
-            .height(16.dp)
-            .fillMaxWidth())
+        Spacer(modifier = Modifier.height(16.dp))
+
         LazyRow(
-            Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp)
         ) {
-            items(tours){ trip ->
-                if(trip.isAddedToWishList){
-                    TourCardInVertical(tour = trip, navController = navController)
-                }
+            items(tours) { tour ->
+                TourCardInVertical(tour = tour, navController = navController)
             }
         }
     }
 }
 
 
+
 @Composable
 fun PopularPackageSection(modifier: Modifier = Modifier, navController: NavHostController) {
     val packages = remember {
         mutableStateListOf(
-            TourPackage("Kuta Resort", R.drawable.kuta_resort, 250.0, 4.5),
-            TourPackage("Kuta Resort", R.drawable.kuta_resort, 250.0, 4.5),
-            TourPackage("Kuta Resort", R.drawable.kuta_resort, 250.0, 4.5),
-            TourPackage("Kuta Resort", R.drawable.kuta_resort, 250.0, 4.5)
+            TourPackage("Kuta Resort", "https://example.com/kuta_resort.jpg", 250.0, 4.5,
+                "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."),
+            TourPackage("Bali Beach", "https://example.com/bali_beach.jpg", 300.0, 4.7,
+                "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."),
+            TourPackage("Ubud Retreat", "https://example.com/ubud_retreat.jpg", 350.0, 4.8,
+                "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."),
+            TourPackage("Seminyak Villa", "https://example.com/seminyak_villa.jpg", 400.0, 4.6,
+                "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.")
         )
     }
     var isSeeAllClicked by remember{
@@ -484,10 +533,3 @@ fun PopularPackageSection(modifier: Modifier = Modifier, navController: NavHostC
         Spacer(modifier = Modifier.height(40.dp))
 }
 
-
-@Suppress("VisualLintBounds")
-@Composable
-@Preview
-fun HomeScreenPreview() {
-    HomeScreen()
-}

@@ -1,7 +1,12 @@
 package com.project17.tourbooking.utils
 
+import FirestoreHelper
+import android.annotation.SuppressLint
 import android.content.Context
+import android.os.Build
+import android.util.Log
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -12,6 +17,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -28,7 +34,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -49,8 +57,13 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import coil.compose.AsyncImage
+import coil.compose.rememberAsyncImagePainter
+import coil.compose.rememberImagePainter
 import com.google.firebase.Timestamp
 import com.project17.tourbooking.R
+import com.project17.tourbooking.models.Tour
+import com.project17.tourbooking.models.Category
 import com.project17.tourbooking.models.Review
 import com.project17.tourbooking.navigates.NavigationItems
 import com.project17.tourbooking.ui.theme.BlackLight100
@@ -63,6 +76,7 @@ import com.project17.tourbooking.ui.theme.Typography
 import java.time.LocalDate
 import java.time.Period
 import java.time.ZoneId
+import java.util.Calendar
 
 val addedWishListIcon2x = R.drawable.ic_added_to_wishlist_2x
 val addedWishListIcon3x = R.drawable.ic_added_to_wishlist_3x
@@ -73,35 +87,33 @@ val toAddWishListIcon3x = R.drawable.ic_to_add_to_wishlist_3x
 @Composable
 fun AddToWishList(
     modifier: Modifier = Modifier.iconWithBackgroundModifier(),
-    tour: WishListItem,
+    initiallyAddedToWishList: Boolean,
     addedIcon: Int = addedWishListIcon2x,
     toAddIcon: Int = toAddWishListIcon2x,
-){
+    context: Context = LocalContext.current
+) {
     var isInWishlist by remember {
-        mutableStateOf(tour.isAddedToWishList)
+        mutableStateOf(initiallyAddedToWishList)
     }
+
     Icon(
         painter = painterResource(
-            id =
-            if(isInWishlist)
-                addedIcon
-            else
-                toAddIcon),
-        tint =
-        if(isInWishlist)
-            Color.Red
-        else
-            Color.Unspecified,
+            id = if (isInWishlist) addedIcon else toAddIcon
+        ),
+        tint = if (isInWishlist) Color.Red else Color.Unspecified,
         contentDescription = "Favorite",
-        modifier = modifier
-            .clickable(onClick = {
-                isInWishlist = !isInWishlist
-                tour.isAddedToWishList = isInWishlist
-                // TODO: Add to Wishlist or Remove from WishList
-            })
-    )
+        modifier = modifier.clickable(onClick = {
+            isInWishlist = !isInWishlist
+            Toast.makeText(
+                context,
+                if (isInWishlist) "Added to Wishlist" else "Removed from Wishlist",
+                Toast.LENGTH_SHORT
+            ).show()
 
+        })
+    )
 }
+
 
 @Composable
 fun AlertDialogUtil(
@@ -180,27 +192,28 @@ fun TourCardInHorizontal(
                 color = BlackLight200,
                 shape = RoundedCornerShape(16.dp)
             )
-    ){
+    ) {
         Row(
             modifier = Modifier
                 .fillMaxSize()
                 .background(BlackWhite0)
                 .padding(8.dp)
-        ){
+        ) {
             Image(
-                painter = painterResource(tour.image),
-                contentDescription = "",
+                painter = rememberImagePainter(tour.image),
+                contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .clip(RoundedCornerShape(16.dp))
-                    .fillMaxSize()
+                    .fillMaxHeight()
                     .weight(2f)
+                    .aspectRatio(1f)
             )
             Spacer(modifier = Modifier.width(16.dp))
             Box(
                 modifier = Modifier
                     .weight(3f)
-            ){
+            ) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -215,13 +228,13 @@ fun TourCardInHorizontal(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Text(
-                        text = String.format("$" + "%.2f", (tour.price ?: 0.0)),
+                        text = String.format("$" + "%.2f", tour.price),
                         style = Typography.bodyLarge,
                         color = ErrorDark600
                     )
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    GenerateStarFromRating(rating = tour.rate, Color.Black)
+                    GenerateStarFromRating(rating = tour.averageRating, Color.Black)
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Text(
@@ -233,17 +246,15 @@ fun TourCardInHorizontal(
                         lineHeight = 24.sp
                     )
                 }
-                AddToWishList(
-                    tour = tour,
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(16.dp))
             }
         }
     }
     Spacer(modifier = Modifier.height(16.dp))
 }
 
+
+
+@SuppressLint("DefaultLocale")
 @Composable
 fun GenerateStarFromRating(
     rating: Double,
@@ -254,48 +265,51 @@ fun GenerateStarFromRating(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Start
     ) {
-        if(rating.toInt() == 5){
+        val starSize = 16.dp
+        if (rating.toInt() == 5) {
             repeat(5) {
                 Image(
                     painter = painterResource(id = R.drawable.ic_yellow_star),
-                    contentDescription = ""
+                    contentDescription = "",
+                    modifier = Modifier.size(starSize)
                 )
                 Spacer(modifier = Modifier.width(4.dp))
             }
-        }
-        else{
-            val filledStars = 5 - rating.toInt()
-            repeat(rating.toInt()) {
+        } else {
+            val filledStars = rating.toInt()
+            val emptyStars = 5 - filledStars
+            repeat(filledStars) {
                 Image(
                     painter = painterResource(id = R.drawable.ic_yellow_star),
-                    contentDescription = ""
+                    contentDescription = "",
+                    modifier = Modifier.size(starSize)
                 )
                 Spacer(modifier = Modifier.width(4.dp))
-
             }
-            repeat(filledStars){
+            repeat(emptyStars) {
                 Image(
                     painter = painterResource(id = R.drawable.ic_white_star),
-                    contentDescription = ""
+                    contentDescription = "",
+                    modifier = Modifier.size(starSize)
                 )
                 Spacer(modifier = Modifier.width(4.dp))
-
             }
         }
         Text(
-            text = rating.toString(),
+            text = String.format("%.2f", rating),
             style = Typography.titleMedium,
             color = textColor
         )
     }
 }
 
+
 @Composable
 fun CategoryItem(
     category: Category,
     isSelected: Boolean = false,
-    onClick:() -> Unit = {}
-){
+    onClick: () -> Unit = {}
+) {
     Box(
         modifier = Modifier
             .background(
@@ -308,18 +322,18 @@ fun CategoryItem(
                 shape = RoundedCornerShape(16.dp)
             )
             .padding(4.dp)
-    ){
+    ) {
         Row(
             modifier = Modifier
-                .clickable(onClick = {
-                    onClick()
-                }),
+                .clickable(onClick = onClick),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Load image using Coil
             Image(
-                painter = painterResource(id = category.icon),
-                contentDescription = stringResource(id = R.string.image_description_text),
+                painter = rememberImagePainter(data = category.icon), // Use Coil's painter for URL
+                contentDescription = null, // Set to null for accessibility
                 modifier = Modifier
+                    .size(40.dp) // Adjust the size as per your design
                     .background(
                         color = BlackLight100,
                         shape = RoundedCornerShape(16.dp)
@@ -327,10 +341,8 @@ fun CategoryItem(
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = stringResource(id = category.name),
-                style = Typography.titleLarge,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                text = category.name,
+                style = Typography.titleLarge
             )
             Spacer(modifier = Modifier.width(8.dp))
         }
@@ -338,8 +350,12 @@ fun CategoryItem(
     Spacer(modifier = Modifier.width(5.dp))
 }
 
+
+
 @Composable
-fun TourCardInVertical(tour: Tour, navController: NavHostController){
+
+fun TourCardInVertical(tour: Tour, navController: NavHostController, context: Context){
+    val tourId = "";
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -353,24 +369,20 @@ fun TourCardInVertical(tour: Tour, navController: NavHostController){
                 shape = RoundedCornerShape(16.dp)
             )
             .clickable(onClick = {
-                val tourId = "1"
-                //TODO: get tour_id
                 navController.navigate(NavigationItems.TripDetail.route + "/${tourId}")
             })
     ){
-
-
-        Image(
-            painter = painterResource(id = R.drawable.fuji_mountain),
-            contentDescription = null,
+        AsyncImage(
+            model = tour.image,
+            contentDescription = "Tour Image",
             contentScale = ContentScale.Crop,
             modifier = Modifier
-                .fillMaxSize()
                 .clip(RoundedCornerShape(16.dp))
+                .fillMaxSize()
         )
 
         AddToWishList(
-            tour = tour,
+            initiallyAddedToWishList = false,
             modifier = Modifier
                 .iconWithBackgroundModifier()
                 .align(Alignment.TopEnd)
@@ -400,13 +412,13 @@ fun TourCardInVertical(tour: Tour, navController: NavHostController){
                 Spacer(modifier = Modifier.width(8.dp))
 
                 Text(
-                    text = tour.location,
+                    text = tour.destination,
                     style = Typography.bodyMedium,
                     color = BlackWhite0
                 )
             }
             Spacer(modifier = Modifier.height(4.dp))
-            GenerateStarFromRating(rating = tour.rate)
+            GenerateStarFromRating(rating = tour.averageRating)
         }
     }
     Spacer(modifier = Modifier.width(16.dp))
@@ -420,6 +432,12 @@ fun TourSummaryCard(tour: Tour) {
             .height(250.dp)
             .clip(RoundedCornerShape(16.dp))
     ) {
+        Image(
+            painter = rememberAsyncImagePainter(tour.image),
+            contentDescription = stringResource(id = R.string.image_description_text),
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize()
+        )
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -429,17 +447,6 @@ fun TourSummaryCard(tour: Tour) {
                 Modifier
                     .fillMaxSize()
                     .padding(16.dp)) {
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)) {
-                    Spacer(modifier = Modifier.weight(1f))
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_wishlist_verify),
-                        contentDescription = stringResource(id = R.string.image_description_text),
-                        modifier = Modifier.alpha(if (tour.isAddedToWishList) 1f else 0f)
-                    )
-                }
                 Spacer(modifier = Modifier.weight(1f))
 
                 Column(Modifier.fillMaxWidth()) {
@@ -462,7 +469,7 @@ fun TourSummaryCard(tour: Tour) {
                         Spacer(modifier = Modifier.width(8.dp))
 
                         Text(
-                            text = tour.location,
+                            text = tour.destination,
                             style = Typography.titleLarge,
                             color = BlackWhite0
                         )
@@ -477,7 +484,7 @@ fun TourSummaryCard(tour: Tour) {
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    GenerateStarFromRating(rating = tour.rate, textColor = BlackWhite0)
+                    GenerateStarFromRating(rating = tour.averageRating, textColor = BlackWhite0)
                 }
 
                 Spacer(modifier = Modifier.weight(1f))
@@ -486,15 +493,52 @@ fun TourSummaryCard(tour: Tour) {
     }
 }
 
+fun calculateAverageRating(reviews: List<Review>, tourId: String): Double {
+    val tourReviews = reviews.filter { it.tourId == tourId }
+
+    if (tourReviews.isEmpty()) {
+        return 0.0
+    }
+
+    val totalRating = tourReviews.sumOf { it.rating }
+    val averageRating = totalRating / tourReviews.size
+
+    return String.format("%.1f", averageRating).toDouble()
+}
+
+
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun ReviewItem(review: Review){
+    var name by remember { mutableStateOf("Loading...") }
+    var avatarUrl by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(Unit) {
+        val currentEmail = review.email
+
+        FirestoreHelper.getCustomerByEmail(currentEmail) { customer ->
+            customer?.let {
+                name = it.fullName
+            }
+        }
+
+        FirestoreHelper.getAvatarUrlFromAccount(currentEmail) { url ->
+            avatarUrl = url
+        }
+
+    }
     Row(
         modifier = Modifier.padding(16.dp),
         verticalAlignment = Alignment.Top
     ) {
-        // Avatar
         Image(
-            painter = painterResource(id = R.drawable.default_avatar),
+            painter = rememberImagePainter(
+                data = avatarUrl,
+                builder = {
+                    placeholder(R.drawable.avatar_placeholder)
+                    error(R.drawable.avatar_placeholder)
+                }
+            ),
             contentDescription = "User Avatar",
             contentScale = ContentScale.Crop,
             modifier = Modifier
@@ -512,7 +556,7 @@ fun ReviewItem(review: Review){
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "Yelena Belova",
+                    text = name,
                     style = Typography.titleLarge,
                 )
                 Text(
@@ -525,7 +569,7 @@ fun ReviewItem(review: Review){
             GenerateStarFromRating(rating = review.rating.toDouble())
 
             Text(
-                text = stringResource(id = R.string.sample_text),
+                text = review.comment,
                 fontSize = 14.sp,
                 modifier = Modifier.padding(top = 4.dp)
             )
@@ -534,24 +578,26 @@ fun ReviewItem(review: Review){
 }
 
 fun calculateReviewDateDisplay(reviewDate: Timestamp): String {
-    val reviewLocalDate = reviewDate.toDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
-    val currentDate = LocalDate.now()
+    val reviewCalendar = Calendar.getInstance().apply {
+        time = reviewDate.toDate()
+    }
+    val currentCalendar = Calendar.getInstance()
 
-    val period = Period.between(reviewLocalDate, currentDate)
+    val years = currentCalendar.get(Calendar.YEAR) - reviewCalendar.get(Calendar.YEAR)
+    val months = currentCalendar.get(Calendar.MONTH) - reviewCalendar.get(Calendar.MONTH)
+    val days = currentCalendar.get(Calendar.DAY_OF_MONTH) - reviewCalendar.get(Calendar.DAY_OF_MONTH)
 
     return when {
-        period.years > 0 -> {
-            val years = period.years
-            val months = period.months
-            if (months > 0) {
-                "$years years $months months ago"
+        years > 0 -> {
+            val adjustedMonths = if (months < 0) months + 12 else months
+            if (adjustedMonths > 0) {
+                "$years years $adjustedMonths months ago"
             } else {
                 "$years years ago"
             }
         }
-
-        period.months > 0 -> "${period.months} months ago"
-        period.days > 0 -> "${period.days} days ago"
+        months > 0 -> "${months} months ago"
+        days > 0 -> "${days} days ago"
         else -> "Today"
     }
 }

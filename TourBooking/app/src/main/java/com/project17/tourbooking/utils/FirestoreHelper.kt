@@ -1,5 +1,11 @@
 
+import android.annotation.SuppressLint
 import android.net.Uri
+import android.util.Log
+import androidx.compose.runtime.Composable
+import com.google.android.gms.tasks.Tasks
+import com.google.firebase.firestore.CollectionReference
+import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import com.project17.tourbooking.models.*
@@ -10,6 +16,7 @@ import java.util.UUID
 
 object FirestoreHelper {
 
+    @SuppressLint("StaticFieldLeak")
     private val db = FirebaseFirestore.getInstance()
     private val storage = FirebaseStorage.getInstance()
 
@@ -25,6 +32,123 @@ object FirestoreHelper {
         } catch (e: Exception) {
             null
         }
+    }
+
+    fun deleteBillsAndDetails(billIds: List<String>, callback: (Boolean, Exception?) -> Unit) {
+        val batch = FirebaseFirestore.getInstance().batch()
+
+        billIds.forEach { billId ->
+            val billRef = FirebaseFirestore.getInstance().collection("bills").document(billId)
+            batch.delete(billRef)
+
+            FirebaseFirestore.getInstance().collection("billDetails")
+                .whereEqualTo("billId", billId)
+                .get()
+                .addOnSuccessListener { querySnapshot ->
+                    querySnapshot.forEach { document ->
+                        val billDetailRef = document.reference
+                        batch.delete(billDetailRef)
+                    }
+                    // Commit the batch after adding all delete operations
+                    batch.commit().addOnCompleteListener { task ->
+                        if (task.isSuccessful) {
+                            callback(true, null)
+                        } else {
+                            callback(false, task.exception)
+                        }
+                    }
+                }
+                .addOnFailureListener { exception ->
+                    callback(false, exception)
+                }
+        }
+    }
+
+    suspend fun loadTicketForTour(tourId: String): List<Ticket> {
+        return try {
+            val querySnapshot = FirebaseFirestore.getInstance()
+                .collection("tickets")
+                .whereEqualTo("tourId", tourId)
+                .get()
+                .await()
+
+            querySnapshot.documents.mapNotNull { document ->
+                document.toObject(Ticket::class.java)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emptyList()
+        }
+    }
+
+
+    fun updateTourRating(tourId: String, newAverageRating: Double) {
+        val tourRef = db.collection("tours").document(tourId)
+        tourRef.update("averageRating", newAverageRating)
+            .addOnSuccessListener {
+                Log.d("FirestoreHelper", "Tour rating successfully updated!")
+            }
+            .addOnFailureListener { e ->
+                Log.w("FirestoreHelper", "Error updating tour rating", e)
+            }
+    }
+
+    suspend fun loadReviewsForTour(tourId: String): List<Review> {
+        return try {
+            val querySnapshot = FirebaseFirestore.getInstance()
+                .collection("reviews") // Thay đổi thành tên collection reviews nếu khác
+                .whereEqualTo("tourId", tourId)
+                .get()
+                .await()
+
+            querySnapshot.documents.mapNotNull { document ->
+                document.toObject(Review::class.java)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emptyList() // Trả về danh sách rỗng nếu có lỗi
+        }
+    }
+
+    suspend fun loadCategories2(): List<CategoryWithId> {
+        val categoriesCollection = db.collection("categories")
+        val querySnapshot = categoriesCollection.get().await()
+
+        return querySnapshot.documents.map { document ->
+            val category = document.toObject(Category::class.java)!!
+            CategoryWithId(category, document.id)
+        }
+    }
+
+
+    suspend fun loadToursWithIds(): List<TourWithId> {
+        val tourCollection = db.collection("tours")
+        val snapshot = tourCollection.get().await()
+        return snapshot.documents.map { doc ->
+            val tour = doc.toObject(Tour::class.java)!!
+            TourWithId(doc.id, tour)
+        }
+    }
+
+
+    suspend fun loadTours(): List<Tour> {
+        val toursCollection = db.collection("tours")
+        return toursCollection.get().await().toObjects(Tour::class.java)
+    }
+
+    suspend fun loadTickets(): List<Ticket> {
+        val ticketsCollection = db.collection("tickets")
+        return ticketsCollection.get().await().toObjects(Ticket::class.java)
+    }
+
+    suspend fun loadReviews(): List<Review> {
+        val reviewsCollection = db.collection("reviews")
+        return reviewsCollection.get().await().toObjects(Review::class.java)
+    }
+
+    suspend fun loadCategories(): List<Category> {
+        val categoriesCollection = db.collection("categories")
+        return categoriesCollection.get().await().toObjects(Category::class.java)
     }
 
     private val categoriesCollection = db.collection("categories")
@@ -50,11 +174,29 @@ object FirestoreHelper {
     suspend fun getCategories(): List<Pair<String, Category>> {
         return categoriesCollection.get().await().map { document ->
             document.id to document.toObject(Category::class.java)
+            document.id to document.toObject(Category::class.java)
         }
     }
 
+    fun getCategories2(onResult: (List<Category>) -> Unit) {
+        db.collection("categories")
+            .get()
+            .addOnSuccessListener { result ->
+                val categories = result.documents.mapNotNull { doc ->
+                    doc.toObject(Category::class.java)
+                }
+                onResult(categories)
+            }
+            .addOnFailureListener { e ->
+                onResult(emptyList()) // In case of failure, return an empty list
+            }
+    }
+
+
+
     // --------------------- Tour ---------------------
     private val toursCollection = db.collection("tours")
+
 
     suspend fun getTours(): List<Pair<String, Tour>> {
         return toursCollection.get().await().documents.map { doc ->
@@ -70,6 +212,22 @@ object FirestoreHelper {
             null
         }
     }
+
+    fun getTourById2(tourId: String, onComplete: (Tour?) -> Unit) {
+        FirebaseFirestore.getInstance()
+            .collection("tours")
+            .document(tourId)
+            .get()
+            .addOnSuccessListener { documentSnapshot ->
+                val tour = documentSnapshot.toObject(Tour::class.java)
+                onComplete(tour)
+            }
+            .addOnFailureListener {
+                onComplete(null)  // Handle failure
+            }
+    }
+
+
 
     suspend fun addTour(tour: Tour): String {
         val docRef = toursCollection.add(tour).await()
@@ -128,6 +286,18 @@ object FirestoreHelper {
     }
 
     // --------------------- Bill ---------------------
+    fun getBillByTourId(tourId: String, callback: (Bill?) -> Unit) {
+        // Fetch the bill associated with the provided tourId from Firestore
+        val billsRef = FirebaseFirestore.getInstance().collection("bills")
+        billsRef.whereEqualTo("tourId", tourId).get().addOnSuccessListener { querySnapshot ->
+            val bill = querySnapshot.documents.firstOrNull()?.toObject(Bill::class.java)
+            callback(bill)
+        }.addOnFailureListener { exception ->
+            Log.e("FirestoreHelper", "Error fetching bill: ${exception.localizedMessage}")
+            callback(null)
+        }
+    }
+
     suspend fun getBills(): Result<Map<String, Bill>> {
         return try {
             val snapshot = db.collection("bills").get().await()
@@ -150,6 +320,30 @@ object FirestoreHelper {
         }
     }
 
+
+
+
+    fun deleteBillDetailsByBillId(billId: String, callback: (Boolean, Exception?) -> Unit) {
+        val billDetailsRef = FirebaseFirestore.getInstance().collection("billDetails")
+        billDetailsRef.whereEqualTo("billId", billId).get().addOnSuccessListener { querySnapshot ->
+            val deleteTasks = querySnapshot.documents.map { doc ->
+                doc.reference.delete()
+            }
+            Tasks.whenAllComplete(deleteTasks).addOnSuccessListener {
+                callback(true, null)
+            }.addOnFailureListener { exception ->
+                Log.e("FirestoreHelper", "Error deleting bill details: ${exception.localizedMessage}")
+                callback(false, exception)
+            }
+        }.addOnFailureListener { exception ->
+            Log.e("FirestoreHelper", "Error fetching bill details: ${exception.localizedMessage}")
+            callback(false, exception)
+        }
+    }
+
+
+
+
     suspend fun updateBill(docId: String, bill: Bill): Result<Unit> {
         return try {
             db.collection("bills").document(docId).set(bill).await()
@@ -169,6 +363,57 @@ object FirestoreHelper {
     }
 
     // --------------------- BillDetail ---------------------
+    suspend fun getBillsByEmail(email: String, callback: (List<Bill>) -> Unit) {
+        db.collection("bills")
+            .whereEqualTo("email", email)  // Assuming 'email' is a field in 'bills' collection
+            .get()
+            .addOnSuccessListener { querySnapshot ->
+                val bills = querySnapshot.documents.mapNotNull { document ->
+                    val bill = document.toObject(Bill::class.java)
+                    bill?.let {
+                        it.copy(id = document.id)  // Add Firestore-generated document ID to the Bill
+                    }
+                }
+                callback(bills)
+            }
+            .addOnFailureListener { exception ->
+                Log.e("FirestoreHelper", "Error fetching bills: ${exception.message}")
+                callback(emptyList())
+            }
+    }
+
+    fun getBillDetailsByBillId(billId: String, onComplete: (List<BillDetail>) -> Unit) {
+        db.collection("billDetails")
+            .whereEqualTo("billId", billId)
+            .get()
+            .addOnSuccessListener { querySnapshot ->
+                val billDetails = querySnapshot.documents.mapNotNull { it.toObject(BillDetail::class.java) }
+                onComplete(billDetails)
+            }
+    }
+
+    fun getTicketById(ticketId: String, onComplete: (Ticket?) -> Unit) {
+        FirebaseFirestore.getInstance()
+            .collection("tickets")
+            .document(ticketId)
+            .get()
+            .addOnSuccessListener { documentSnapshot ->
+                val ticket = documentSnapshot.toObject(Ticket::class.java)
+                onComplete(ticket)
+            }
+    }
+
+    fun getTourById(tourId: String, onComplete: (Tour?) -> Unit) {
+        FirebaseFirestore.getInstance()
+            .collection("tours")
+            .document(tourId)
+            .get()
+            .addOnSuccessListener { documentSnapshot ->
+                val tour = documentSnapshot.toObject(Tour::class.java)
+                onComplete(tour)
+            }
+    }
+
     suspend fun getBillDetails(): Result<Map<String, BillDetail>> {
         return try {
             val snapshot = db.collection("bill_details").get().await()
@@ -210,108 +455,151 @@ object FirestoreHelper {
     }
 
     // --------------------- Account ---------------------
-
     private val accountsCollection = db.collection("accounts")
 
+    // Add a new account with hashed password
     suspend fun addAccount(account: Account) {
-        val hashedPassword = hashPassword(account.password)
+        val hashedPassword = BCrypt.hashpw(account.password, BCrypt.gensalt())
         val accountWithHashedPassword = account.copy(password = hashedPassword)
-        accountsCollection.document(account.username).set(accountWithHashedPassword).await()
+        accountsCollection.add(accountWithHashedPassword).await()
     }
 
-    suspend fun updateAccount(account: Account) {
-        val accountFromDb = getAccount(account.username)
-        val updatedAccount = if (account.password.isNotEmpty()) {
-            val hashedPassword = hashPassword(account.password)
-            account.copy(password = hashedPassword)
-        } else {
-            account.copy(password = accountFromDb?.password ?: "")
+    suspend fun updateAccount(username: String, updatedAccount: Account) {
+        try {
+            Log.d("FirestoreHelper", "Attempting to update account with username: $username")
+
+            // Query Firestore to find the document with the matching username
+            val querySnapshot = accountsCollection.whereEqualTo("username", username).get().await()
+
+            if (querySnapshot.isEmpty) {
+                Log.d("FirestoreHelper", "No account found with username: $username")
+                return
+            }
+
+            // Assume we only need to update the first document that matches the username
+            val document = querySnapshot.documents.first()
+            val documentId = document.id
+            val currentAccount = document.toObject(Account::class.java)
+
+            // Prepare the updated account fields
+            val accountToUpdate = Account(
+                username = updatedAccount.username.takeIf { it.isNotEmpty() } ?: currentAccount?.username ?: "",
+                email = updatedAccount.email.takeIf { it.isNotEmpty() } ?: currentAccount?.email ?: "",
+                password = updatedAccount.password.takeIf { it.isNotEmpty() }?.let { BCrypt.hashpw(it, BCrypt.gensalt()) } ?: currentAccount?.password ?: "",
+                avatar = updatedAccount.avatar.takeIf { it.isNotEmpty() } ?: currentAccount?.avatar ?: "",
+                role = updatedAccount.role.takeIf { it.isNotEmpty() } ?: currentAccount?.role ?: ""
+            )
+
+            // Update the document in Firestore
+            accountsCollection.document(documentId).set(accountToUpdate).await()
+            Log.d("FirestoreHelper", "Successfully updated account with ID: $documentId")
+        } catch (e: Exception) {
+            Log.e("FirestoreHelper", "Error updating account with username: $username", e)
         }
-        accountsCollection.document(account.username).set(updatedAccount).await()
     }
 
-    suspend fun deleteAccount(username: String) {
-        accountsCollection.document(username).delete().await()
+
+    suspend fun deleteAccount(email: String) {
+        try {
+            Log.d("FirestoreHelper", "Attempting to delete account with email: $email")
+
+            // Query Firestore to find the document with the matching email
+            val querySnapshot = accountsCollection.whereEqualTo("email", email).get().await()
+
+            if (querySnapshot.isEmpty) {
+                Log.d("FirestoreHelper", "No account found with email: $email")
+                return
+            }
+
+            // Delete all documents matching the email
+            for (document in querySnapshot.documents) {
+                val documentId = document.id
+                accountsCollection.document(documentId).delete().await()
+                Log.d("FirestoreHelper", "Successfully deleted account with ID: $documentId")
+            }
+        } catch (e: Exception) {
+            Log.e("FirestoreHelper", "Error deleting account with email: $email", e)
+        }
     }
 
-    suspend fun getAccount(username: String): Account? {
-        val document = accountsCollection.document(username).get().await()
-        return document.toObject(Account::class.java)
-    }
-
-    suspend fun getAllAccounts(): List<Account> {
+    // Load all accounts
+    suspend fun loadAccounts(): List<Account> {
         val snapshot = accountsCollection.get().await()
         return snapshot.documents.mapNotNull { it.toObject(Account::class.java) }
     }
 
-    // Mã hóa mật khẩu
-    private fun hashPassword(password: String): String {
-        return BCrypt.hashpw(password, BCrypt.gensalt())
-    }
-
-    // Kiểm tra mật khẩu
-    private fun checkPassword(password: String, hashed: String): Boolean {
-        return BCrypt.checkpw(password, hashed)
-    }
-
-    // Kiểm tra mật khẩu khi đăng nhập
-    suspend fun verifyPassword(username: String, password: String): Boolean {
-        val account = getAccount(username)
-        return account?.let { checkPassword(password, it.password) } ?: false
-    }
-
-    suspend fun authenticateUser(emailOrUsername: String, password: String): Boolean {
-        return try {
-            val query = db.collection("accounts")
-                .whereEqualTo("username", emailOrUsername)
-                .get().await()
-
-            if (query.documents.isNotEmpty()) {
-                val document = query.documents.first()
-                val hashedPassword = document.getString("password")
-
-                if (hashedPassword != null) {
-                    checkPassword(password, hashedPassword)
-                } else {
-                    false
-                }
-            } else {
-                false
-            }
-        } catch (e: Exception) {
-            false
-        }
-    }
-
-    suspend fun isEmailExists(email: String): Boolean {
-        return try {
-            val query = db.collection("accounts")
-                .whereEqualTo("email", email)
-                .get()
-                .await()
-
-            query.documents.isNotEmpty() // Trả về true nếu có ít nhất một tài liệu khớp
-        } catch (e: Exception) {
-            false
-        }
+    // Check password against hashed password
+    fun checkPassword(hashedPassword: String, plainPassword: String): Boolean {
+        return BCrypt.checkpw(plainPassword, hashedPassword)
     }
 
     suspend fun updatePassword(email: String, newPassword: String): Boolean {
-        return try {
-            val userRef = db.collection("accounts")
-                .whereEqualTo("email", email)
-                .get()
-                .await()
-                .documents
-                .firstOrNull()
-                ?.reference
+        val snapshot = accountsCollection.whereEqualTo("email", email).get().await()
+        if (snapshot.isEmpty) return false
 
-            userRef?.update("password", newPassword)?.await()
-            true
-        } catch (e: Exception) {
-            false
+        val documentRef = snapshot.documents.first().reference
+        val hashedPassword = BCrypt.hashpw(newPassword, BCrypt.gensalt())
+        documentRef.update("password", hashedPassword).await()
+        return true
+    }
+
+    suspend fun isEmailExists(email: String): Boolean {
+        val snapshot = accountsCollection.whereEqualTo("email", email).get().await()
+        return !snapshot.isEmpty
+    }
+
+    fun getCustomerByEmail(email: String, callback: (Customer?) -> Unit) {
+        val db = FirebaseFirestore.getInstance()
+        db.collection("customers")
+            .whereEqualTo("email", email)
+            .get()
+            .addOnSuccessListener { result ->
+                if (result.isEmpty) {
+                    callback(null)
+                } else {
+                    val customer = result.documents.firstOrNull()?.toObject(Customer::class.java)
+                    callback(customer)
+                }
+            }
+            .addOnFailureListener { exception ->
+                Log.e("FirestoreHelper", "Error getting documents: ", exception)
+                callback(null)
+            }
+    }
+
+    fun getAccountByEmail(email: String, callback: (Account?) -> Unit) {
+        // Reference to the 'accounts' collection
+        val accountsCollection = db.collection("accounts")
+
+        // Query to find the account by email
+        val query = accountsCollection.whereEqualTo("email", email)
+
+        // Execute the query asynchronously
+        query.get()
+            .addOnSuccessListener { querySnapshot ->
+                // Check if we have any results
+                if (querySnapshot.isEmpty) {
+                    callback(null)
+                } else {
+                    // Get the first result (should be unique by email)
+                    val documentSnapshot = querySnapshot.documents.firstOrNull()
+                    val account = documentSnapshot?.toObject(Account::class.java)
+                    callback(account)
+                }
+            }
+            .addOnFailureListener { exception ->
+                // Handle errors
+                Log.e("FirestoreHelper", "Error fetching account by email", exception)
+                callback(null)
+            }
+    }
+
+    fun getAvatarUrlFromAccount(email: String, callback: (String?) -> Unit) {
+        getAccountByEmail(email) { account ->
+            callback(account?.avatar)
         }
     }
+
 
     // --------------------- Customer ---------------------
     suspend fun getCustomers(): Result<Map<String, Customer>> {
@@ -365,16 +653,20 @@ object FirestoreHelper {
         }
     }
 
-    suspend fun addReview(review: Review): Result<Unit> {
-        return try {
-            val newDocRef = db.collection("reviews").document()
-            review.copy().let {
-                newDocRef.set(it).await()
+    fun getReviewsCollection(): CollectionReference {
+        return db.collection("reviews")
+    }
+
+    fun addReview(review: Review, onSuccess: (Boolean, Exception?) -> Unit) {
+        val reviewToSave = review.copy(rating = (review.rating * 10).toInt() / 10.0) // Round to 1 decimal place
+
+        getReviewsCollection().add(reviewToSave)
+            .addOnSuccessListener {
+                onSuccess(true, null)
             }
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
+            .addOnFailureListener { exception ->
+                onSuccess(false, exception)
+            }
     }
 
     suspend fun updateReview(docId: String, review: Review): Result<Unit> {

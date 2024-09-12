@@ -8,10 +8,10 @@
     <string name="welcome_text">Hi, Nhật!</string>
     <string name="home_question_text">Where do you\nwant to explore today?</string>
     <string name="choose_category_text">Choose Category</string>
-    <string name="favorite_place_text">Favorite Place</string>
+    <string name="favorite_place_text">Popular Tour</string>
     <string name="see_all_text">See All</string>
     <string name="explore_text">Explore</string>
-    <string name="popular_package_text">Popular Package</string>
+    <string name="popular_package_text">Most Booked</string>
     <string name="search_hint_text">Search destination</string>
     <string name="icon_notification_description_text">Notification</string>
     <string name="avatar_description_text">Avatar</string>
@@ -55,6 +55,8 @@
     <string name="category_text">Category</string>"
     <string name="about_trip_text">About Trip</string>
     <string name="review_text">Review (%1$d)</string>
+    <string name="default_username">user</string>
+    <string name="category_not_found">Category not found</string>
     <string name="title_activity_pay">PayActivity</string>
     <string name="title_activity_pay_detail">PayDetailActivity</string>
     <string name="person_responsible_text">Person Responsible</string>
