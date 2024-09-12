@@ -208,7 +208,6 @@ fun NavBarSection(
             tour = tour,
             addedIcon = addedWishListIcon3x,
             toAddIcon = toAddWishListIcon3x,
-            context = context,
             modifier = Modifier
                 .iconWithoutBackgroundModifier()
         )

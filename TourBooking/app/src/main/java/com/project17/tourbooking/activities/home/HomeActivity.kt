@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -297,9 +298,11 @@ fun ChooseCategorySection(modifier: Modifier = Modifier, navController: NavHostC
         }
         Spacer(modifier = Modifier.height(8.dp))
         if(!isSeeAllClicked){
-            LazyRow {
+            LazyRow(
+                Modifier.height(75.dp)
+            ) {
                 items(categories){ category ->
-                    CategoryItem(category = category, imageModifier = Modifier.fillMaxSize(), onClick = {
+                    CategoryItem(category = category, onClick = {
                         appViewModel.isChosenCategory.value = true
                         navController.navigate(route = NavigationItems.Search.route)
                     })
@@ -363,8 +366,7 @@ fun FavoritePlaceSection(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .width(200.dp)
-            .height(250.dp)
+            .height(350.dp)
     ){
         Row(
             modifier = Modifier
@@ -394,7 +396,7 @@ fun FavoritePlaceSection(
         ) {
             items(tours){ trip ->
                 if(trip.isAddedToWishList){
-                    TourCardInVertical(tour = trip, navController = navController, context = context)
+                    TourCardInVertical(tour = trip, navController = navController)
                 }
             }
         }
@@ -463,19 +465,18 @@ fun PopularPackageSection(modifier: Modifier = Modifier, navController: NavHostC
             }
         }
         else{
-            LazyColumn(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(lazyColumnHeight * packages.size)
             ) {
-                items(packages) { item ->
+                packages.forEach { item ->
                     TourCardInHorizontal(
                         tour = item,
                         navController = navController,
                         onMeasured = {
                             lazyColumnHeight = it
-                        }
-                    )
+                        })
                 }
             }
         }
