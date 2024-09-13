@@ -2,12 +2,10 @@ package com.project17.tourbooking.navigates
 
 import BottomBar
 import ManageAccountsScreen
-import MyTripActivity
-import ProfileActivity
+import MyTripScreen
+import ProfileScreen
 import WishListScreen
-import android.annotation.SuppressLint
 import android.os.Build
-import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -19,25 +17,25 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.project17.tourbooking.activities.admin.AddTourScreen
-import com.project17.tourbooking.activities.admin.EditTourScreen
-import com.project17.tourbooking.activities.admin.ManageCategoriesScreen
+import com.project17.tourbooking.activities.admin.tours.AddTourScreen
+import com.project17.tourbooking.activities.admin.tours.EditTourScreen
+import com.project17.tourbooking.activities.admin.categories.ManageCategoriesScreen
 import com.project17.tourbooking.activities.admin.ManageOverviewScreen
-import com.project17.tourbooking.activities.admin.ManageToursScreen
-import com.project17.tourbooking.activities.admin.OrderStatisticsScreen
-import com.project17.tourbooking.activities.home.HomeScreen
-import com.project17.tourbooking.activities.pay.BookingDetailScreen
-import com.project17.tourbooking.activities.pay.BookingSuccessScreen
-import com.project17.tourbooking.activities.search.SearchFilterScreen
-import com.project17.tourbooking.activities.search.SearchScreen
-import com.project17.tourbooking.activities.search.SearchViewModel
-import com.project17.tourbooking.activities.tripdetail.TripBookedScreen
-import com.project17.tourbooking.activities.tripdetail.TripDetailScreen
-import com.project17.tourbooking.activities.user.CreateAccount
-import com.project17.tourbooking.activities.user.Explore
-import com.project17.tourbooking.activities.user.ForgotPasswordScreen
-import com.project17.tourbooking.activities.user.LoginScreen
-import com.project17.tourbooking.utils.AuthViewModel
+import com.project17.tourbooking.activities.admin.tours.ManageToursScreen
+import com.project17.tourbooking.activities.admin.statistics.OrderStatisticsScreen
+import com.project17.tourbooking.activities.user.home.HomeScreen
+import com.project17.tourbooking.activities.user.pay.BookingDetailScreen
+import com.project17.tourbooking.activities.user.pay.BookingSuccessScreen
+import com.project17.tourbooking.activities.user.search.SearchFilterScreen
+import com.project17.tourbooking.activities.user.search.SearchScreen
+import com.project17.tourbooking.activities.user.search.SearchViewModel
+import com.project17.tourbooking.activities.user.tripdetail.BillDetailScreen
+import com.project17.tourbooking.activities.user.tripdetail.TripDetailScreen
+import com.project17.tourbooking.activities.user.authenticate.CreateAccount
+import com.project17.tourbooking.activities.user.authenticate.Explore
+import com.project17.tourbooking.activities.user.authenticate.ForgotPasswordScreen
+import com.project17.tourbooking.activities.user.authenticate.LoginScreen
+import com.project17.tourbooking.viewmodels.AuthViewModel
 import com.project17.tourbooking.viewmodels.AppViewModel
 
 @Composable
@@ -68,7 +66,7 @@ fun NavigationGraph(navController: NavHostController, onBottomBarVisibilityChang
         }
         composable(NavigationItems.MyTrip.route){
             onBottomBarVisibilityChanged(true)
-            MyTripActivity(navController = navController, authViewModel = AuthViewModel(), searchViewModel = SearchViewModel())
+            MyTripScreen(navController = navController, authViewModel = AuthViewModel(), searchViewModel = SearchViewModel())
         }
         composable(NavigationItems.WishList.route){
             onBottomBarVisibilityChanged(true)
@@ -76,7 +74,7 @@ fun NavigationGraph(navController: NavHostController, onBottomBarVisibilityChang
         }
         composable(NavigationItems.Profile.route){
             onBottomBarVisibilityChanged(true)
-            ProfileActivity(navController, authViewModel = AuthViewModel())
+            ProfileScreen(navController, authViewModel = AuthViewModel())
         }
         composable(NavigationItems.TripDetail.route + "/{tourId}", arguments = listOf(
             navArgument("tourId"){type = NavType.StringType}
@@ -90,7 +88,7 @@ fun NavigationGraph(navController: NavHostController, onBottomBarVisibilityChang
         )){
             onBottomBarVisibilityChanged(false)
             val billId = it.arguments?.getString("billId")
-            TripBookedScreen(billId ?: "")
+            BillDetailScreen(billId ?: "")
         }
         composable(NavigationItems.Login.route){
             onBottomBarVisibilityChanged(false)

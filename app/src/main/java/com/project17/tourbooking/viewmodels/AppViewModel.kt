@@ -1,6 +1,6 @@
 package com.project17.tourbooking.viewmodels
 
-import FirestoreHelper
+import com.project17.tourbooking.helper.FirestoreHelper
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.MutableLiveData
