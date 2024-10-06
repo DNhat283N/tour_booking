@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "575512767667",
-    "project_id": "tourbooking-cs01",
-    "storage_bucket": "tourbooking-cs01.appspot.com"
+    "project_number": "345745299",
+    "project_id": "tour-booking-543c2",
+    "storage_bucket": "tour-booking-543c2.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:575512767667:android:c73d12ba3114aa47b214c6",
+        "mobilesdk_app_id": "1:345745299:android:8620834cf4e0aecfb2ea66",
         "android_client_info": {
           "package_name": "com.project17.tourbooking"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBtdXMd_FSxp7NqBGdCN-f2LMh8Alr6BpE"
+          "current_key": "AIzaSyDuetAfyHWdDfaxGNC1rkuAWl07-Ujdu1g"
         }
       ],
       "services": {

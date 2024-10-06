@@ -33,7 +33,6 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -49,9 +48,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.project17.tourbooking.R
+import com.project17.tourbooking.activities.user.search.viewmodel.SearchViewModel
+import com.project17.tourbooking.constant.MAX_PRICE_TO_FILTER
+import com.project17.tourbooking.constant.MIN_PRICE_TO_FILTER
 import com.project17.tourbooking.ui.theme.BlackDark900
 import com.project17.tourbooking.ui.theme.BlackLight100
 import com.project17.tourbooking.ui.theme.BlackLight200
@@ -77,11 +80,8 @@ class SearchFilterActivity : ComponentActivity() {
     }
 }
 
-const val MIN_PRICE = 0f
-const val MAX_PRICE = 7000f
-
 @Composable
-fun SearchFilterScreen(navController: NavHostController = rememberNavController(), appViewModel: AppViewModel = viewModel()){
+fun SearchFilterScreen(navController: NavController = rememberNavController(), appViewModel: AppViewModel = viewModel()){
     val searchViewModel: SearchViewModel = viewModel()
     val range = remember {
         mutableStateOf(100f..7000f)
@@ -129,7 +129,7 @@ fun SearchFilterScreen(navController: NavHostController = rememberNavController(
         SearchFilterFooterSection(
             modifier = Modifier.align(Alignment.BottomStart),
             onClearAllButtonClick = {
-                range.value = MIN_PRICE..MAX_PRICE
+                range.value = MIN_PRICE_TO_FILTER..MAX_PRICE_TO_FILTER
                 rateMoreThan = -1
             },
             onApplyButtonClick = {
@@ -139,7 +139,7 @@ fun SearchFilterScreen(navController: NavHostController = rememberNavController(
     }
 }
 
-fun onApplyButtonClick(value: ClosedFloatingPointRange<Float>, rateMoreThan: Int, navController: NavHostController, viewModel: AppViewModel) {
+fun onApplyButtonClick(value: ClosedFloatingPointRange<Float>, rateMoreThan: Int, navController: NavController, viewModel: AppViewModel) {
     viewModel.priceRange.value = value
     viewModel.rateMoreThan.value = rateMoreThan
     navController.popBackStack()
@@ -182,10 +182,10 @@ fun SearchFilterFooterSection(
             modifier = Modifier
                 .padding(8.dp)
                 .border(0.dp, BlackLight200, RoundedCornerShape(16.dp))
-                .background(BrandDefault500, RoundedCornerShape(16.dp))
+                .background(BrandDefault500 , RoundedCornerShape(16.dp))
                 .width(150.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = BrandDefault500,
+                containerColor = BrandDefault500 ,
                 contentColor = BlackDark900
             )
         ) {
@@ -198,7 +198,7 @@ fun SearchFilterFooterSection(
 }
 
 @Composable
-fun SearchFilterHeaderSection(navController: NavHostController, viewModel: SearchViewModel){
+fun SearchFilterHeaderSection(navController: NavController, viewModel: SearchViewModel){
     Row(
         modifier = Modifier
             .fillMaxWidth(),
@@ -234,7 +234,7 @@ fun RangePriceFilterSection(range: MutableState<ClosedFloatingPointRange<Float>>
     RangeSlider(
         value = range.value,
         onValueChange = { range.value = it },
-        valueRange = MIN_PRICE..MAX_PRICE,
+        valueRange = MIN_PRICE_TO_FILTER..MAX_PRICE_TO_FILTER,
         steps = 100,
         colors = SliderDefaults.colors(
             activeTrackColor = BlackDark900,
@@ -265,8 +265,8 @@ fun RangePriceFilterSection(range: MutableState<ClosedFloatingPointRange<Float>>
             TextField(
                 value = range.value.start.toInt().toString(),
                 onValueChange = { newValue ->
-                    val newStartValue = newValue.toFloatOrNull() ?: MIN_PRICE
-                    if(newStartValue <= range.value.endInclusive && newStartValue >= MIN_PRICE){
+                    val newStartValue = newValue.toFloatOrNull() ?: MIN_PRICE_TO_FILTER
+                    if(newStartValue <= range.value.endInclusive && newStartValue >= MIN_PRICE_TO_FILTER){
                         range.value = newStartValue..range.value.endInclusive
                     }
                 },
@@ -300,8 +300,8 @@ fun RangePriceFilterSection(range: MutableState<ClosedFloatingPointRange<Float>>
             TextField(
                 value = range.value.endInclusive.toInt().toString(),
                 onValueChange = { newValue ->
-                    val newEndInclusiveValue = newValue.toFloatOrNull() ?: MAX_PRICE
-                    if(newEndInclusiveValue >= range.value.start && newEndInclusiveValue <= MAX_PRICE){
+                    val newEndInclusiveValue = newValue.toFloatOrNull() ?: MAX_PRICE_TO_FILTER
+                    if(newEndInclusiveValue >= range.value.start && newEndInclusiveValue <= MAX_PRICE_TO_FILTER){
                         range.value = range.value.start..newEndInclusiveValue
                     }
                 },

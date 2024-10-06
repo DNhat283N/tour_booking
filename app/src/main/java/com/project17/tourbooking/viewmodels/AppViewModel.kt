@@ -1,6 +1,6 @@
 package com.project17.tourbooking.viewmodels
 
-import com.project17.tourbooking.helper.FirestoreHelper
+import com.project17.tourbooking.helper.firestore_helper.FirestoreHelper
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.MutableLiveData
@@ -17,7 +17,7 @@ class AppViewModel(): ViewModel(){
 
     fun loadCategories(firestoreHelper: FirestoreHelper) {
         viewModelScope.launch {
-            firestoreHelper.getCategories2 { result ->
+            firestoreHelper.getAllCategories { result ->
                 categories.clear()
                 categories.addAll(result)
             }

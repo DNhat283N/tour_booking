@@ -24,12 +24,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.rememberImagePainter
+import coil.compose.rememberAsyncImagePainter
+import coil.request.ImageRequest
 import com.google.firebase.Timestamp
 import com.project17.tourbooking.R
-import com.project17.tourbooking.helper.FirestoreHelper
+import com.project17.tourbooking.helper.firestore_helper.FirestoreHelper
 import com.project17.tourbooking.models.Review
 import com.project17.tourbooking.ui.theme.Typography
 import java.util.Calendar
@@ -41,30 +43,23 @@ fun ReviewItem(review: Review){
     var avatarUrl by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
-        val currentEmail = review.email
-
-        FirestoreHelper.getCustomerByEmail(currentEmail) { customer ->
-            customer?.let {
-                name = it.fullName
-            }
-        }
-
-        FirestoreHelper.getAvatarUrlFromAccount(currentEmail) { url ->
+        FirestoreHelper.getAvatarUrlFromAccountId(review.accountId) { url ->
             avatarUrl = url
         }
-
+        FirestoreHelper.getCustomerNameByAccountId(review.accountId){
+            name = it ?: "null"
+        }
     }
     Row(
         modifier = Modifier.padding(16.dp),
         verticalAlignment = Alignment.Top
     ) {
         Image(
-            painter = rememberImagePainter(
-                data = avatarUrl,
-                builder = {
+            painter = rememberAsyncImagePainter(
+                ImageRequest.Builder(LocalContext.current).data(data = avatarUrl).apply(block = fun ImageRequest.Builder.() {
                     placeholder(R.drawable.avatar_placeholder)
                     error(R.drawable.avatar_placeholder)
-                }
+                }).build()
             ),
             contentDescription = "User Avatar",
             contentScale = ContentScale.Crop,
@@ -93,7 +88,7 @@ fun ReviewItem(review: Review){
                 )
             }
 
-            GenerateStarFromRating(rating = review.rating.toDouble())
+            GenerateStarFromRating(rating = review.rating)
 
             Text(
                 text = review.comment,
@@ -123,22 +118,8 @@ fun calculateReviewDateDisplay(reviewDate: Timestamp): String {
                 "$years years ago"
             }
         }
-        months > 0 -> "${months} months ago"
-        days > 0 -> "${days} days ago"
+        months > 0 -> "$months months ago"
+        days > 0 -> "$days days ago"
         else -> "Today"
     }
-}
-
-
-fun calculateAverageRating(reviews: List<Review>, tourId: String): Double {
-    val tourReviews = reviews.filter { it.tourId == tourId }
-
-    if (tourReviews.isEmpty()) {
-        return 0.0
-    }
-
-    val totalRating = tourReviews.sumOf { it.rating }
-    val averageRating = totalRating / tourReviews.size
-
-    return String.format("%.1f", averageRating).toDouble()
 }

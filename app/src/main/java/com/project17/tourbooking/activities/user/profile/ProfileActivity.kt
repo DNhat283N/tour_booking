@@ -1,28 +1,55 @@
-import android.util.Log
+package com.project17.tourbooking.activities.user.profile
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import coil.compose.rememberImagePainter
+import coil.compose.rememberAsyncImagePainter
 import com.project17.tourbooking.R
-import com.project17.tourbooking.helper.FirestoreHelper
+import com.project17.tourbooking.constant.DEFAULT_AVATAR
+import com.project17.tourbooking.helper.firestore_helper.FirestoreHelper
+import com.project17.tourbooking.models.Account
+import com.project17.tourbooking.models.Customer
+import com.project17.tourbooking.navigates.NavigationItems
+import com.project17.tourbooking.ui.theme.BlackLight100
+import com.project17.tourbooking.ui.theme.BlackLight300
+import com.project17.tourbooking.ui.theme.BlackWhite0
+import com.project17.tourbooking.ui.theme.ErrorDefault500
 import com.project17.tourbooking.ui.theme.Typography
+import com.project17.tourbooking.utils.composables.CommonAlertDialog
 import com.project17.tourbooking.utils.composables.RequireLogin
 import com.project17.tourbooking.viewmodels.AuthState
 import com.project17.tourbooking.viewmodels.AuthViewModel
@@ -30,39 +57,40 @@ import com.project17.tourbooking.viewmodels.AuthViewModel
 @Composable
 fun ProfileScreen(navController: NavController, authViewModel: AuthViewModel) {
     var showLogoutDialog by remember { mutableStateOf(false) }
-    var name by remember { mutableStateOf("Loading...") }
-    var address by remember { mutableStateOf("Loading...") }
+    var customer by remember{ mutableStateOf(Customer()) }
     var avatarUrl by remember { mutableStateOf<String?>(null) }
+    var account by remember {
+        mutableStateOf<Account?>(null)
+    }
+
+    var isDataLoaded by remember { mutableStateOf(false) }
 
     val authState = authViewModel.authState.observeAsState()
 
     LaunchedEffect(authState.value) {
         when (authState.value) {
             is AuthState.Authenticated -> {
-                val currentUser = authViewModel.auth.currentUser
-                val currentEmail = currentUser?.email
-
-                if (currentEmail != null) {
-                    FirestoreHelper.getCustomerByEmail(currentEmail) { customer ->
-                        customer?.let {
-                            name = it.fullName
-                            address = it.address
-                        }
+                if (!isDataLoaded) {
+                    val currentUser = authViewModel.getCurrentUser()
+                    FirestoreHelper.getAvatarUrlFromAccountId(currentUser!!.uid) {
+                        avatarUrl = it
                     }
-
-                    FirestoreHelper.getAvatarUrlFromAccount(currentEmail) { url ->
-                        avatarUrl = url
+                    val customerId = FirestoreHelper.getCustomerIdByAccountId(currentUser.uid)
+                    if (customerId.getOrNull() != null) {
+                        FirestoreHelper.getCustomerInfoByCustomerId(customerId.getOrNull()!!) {
+                            if (it != null) {
+                                customer = it
+                                isDataLoaded = true
+                            }
+                        }
+                        account = FirestoreHelper.getAccountByAccountId(currentUser.uid)
                     }
                 }
             }
 
-            is AuthState.Error -> {
-                val errorMessage = (authState.value as AuthState.Error).message
-                Log.e("ProfileActivity", errorMessage)
-            }
+            is AuthState.Error -> {}
 
-            is AuthState.Unauthenticated -> {
-            }
+            is AuthState.Unauthenticated -> {}
 
             else -> Unit
         }
@@ -74,136 +102,138 @@ fun ProfileScreen(navController: NavController, authViewModel: AuthViewModel) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
+                .background(BlackWhite0)
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
         ) {
 
-            Spacer(modifier = Modifier.height(50.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
-            Text(
-                text = "List Your Trip",
-                style = Typography.headlineLarge,
-                modifier = Modifier.padding(start = 16.dp)
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = stringResource(id = R.string.your_profile_text),
+                    style = Typography.headlineMedium,
+                    modifier = Modifier.padding(start = 16.dp)
+                )
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                Row(
+                    Modifier
+                        .border(1.dp, BlackLight300, RoundedCornerShape(16.dp))
+                        .background(BlackLight100, RoundedCornerShape(16.dp))
+                        .clickable { navController.navigate(NavigationItems.CoinPackageBooking.route) },
+                    verticalAlignment = Alignment.CenterVertically
+
+                ){
+                    Row(Modifier
+                        .padding(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ){
+                        Image(
+                            painter = painterResource(id = R.drawable.coin),
+                            contentDescription = stringResource(
+                                id = R.string.image_description_text
+                            ),
+                            modifier = Modifier
+                                .size(30.dp)
+                        )
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        Text(
+                            text = String.format("%d",account?.coin ?: 0),
+                            style = Typography.headlineSmall,
+                            color = ErrorDefault500
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Use Coil to load the image from the URL
                 Image(
-                    painter = rememberImagePainter(
-                        data = avatarUrl,
-                        builder = {
-                            placeholder(R.drawable.avatar_placeholder)
-                            error(R.drawable.avatar_placeholder)
-                        }
+                    painter = rememberAsyncImagePainter(
+                        model = avatarUrl ?: DEFAULT_AVATAR
                     ),
                     contentDescription = "Avatar",
                     modifier = Modifier
-                        .size(64.dp)
-                        .clip(CircleShape)
+                        .size(72.dp)
+                        .clip(RoundedCornerShape(72.dp))
+                        .border(1.dp, BlackLight300, RoundedCornerShape(50.dp))
                 )
 
                 Spacer(modifier = Modifier.width(16.dp))
 
                 Column {
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("Hello, $name", style = Typography.headlineSmall)
+                    Text("Hello, ${account?.userName ?: stringResource(id = R.string.default_username)}", style = Typography.titleLarge)
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text("Address: $address", style = Typography.bodyMedium)
+                    Text("${customer.address}", style = Typography.bodyMedium)
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             ProfileCard(
-                "Personal Information",
+                R.string.personal_information_text,
                 R.drawable.ic_person,
-                onClick = { navController.navigate("personal_information") })
+                onClick = {  })
 
             Spacer(modifier = Modifier.height(16.dp))
 
             ProfileCard(
-                "Notification",
+                R.string.notification_text,
                 R.drawable.ic_notification,
-                onClick = { navController.navigate("notification") })
+                onClick = {})
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            ProfileCard("FAQ", R.drawable.ic_help, onClick = { navController.navigate("faq") })
+            ProfileCard(R.string.faq_text, R.drawable.ic_help, onClick = { })
 
             Spacer(modifier = Modifier.height(16.dp))
 
             ProfileCard(
-                "Language",
+                R.string.language_text,
                 R.drawable.ic_language,
-                onClick = { navController.navigate("language") })
+                onClick = { })
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            ProfileCard("Logout", R.drawable.ic_logout) {
+            ProfileCard(R.string.logout_text, R.drawable.ic_logout) {
                 showLogoutDialog = true
             }
 
-            if (showLogoutDialog) {
-                AlertDialog(
-                    onDismissRequest = { showLogoutDialog = false },
-                    title = {
-                        Text(
-                            text = "Logout",
-                            modifier = Modifier.fillMaxWidth(),
-                            textAlign = TextAlign.Center,
-                            style = Typography.titleLarge
-                        )
-                    },
-                    text = {
-                        Text(
-                            text = buildAnnotatedString {
-                                append("Are you sure you want to log out of ")
-                                withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
-                                    append(name)
-                                }
-                                append("'s account?")
-                            },
-                            style = Typography.bodyLarge
-                        )
-                    },
-                    confirmButton = {
-                        Button(
-                            onClick = {
-                                authViewModel.signOut()
-                                navController.navigate("home")
-                                showLogoutDialog = false
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFCD240))
-                        ) {
-                            Text("Logout")
-                        }
-                    },
-                    dismissButton = {
-                        Button(
-                            onClick = { showLogoutDialog = false },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.LightGray)
-                        ) {
-                            Text("Cancel")
-                        }
-                    }
-                )
-            }
+            CommonAlertDialog(
+                onDismiss = { showLogoutDialog = false },
+                title = R.string.logout_text,
+                onConfirm = {
+                    authViewModel.signOut()
+                    navController.navigate(NavigationItems.Home.route)
+                    showLogoutDialog = false
+                },
+                message = R.string.logout_message_text,
+                confirmButtonText = R.string.logout_button_text,
+                dismissButtonText = R.string.cancel_button_text,
+                isDialogVisible = showLogoutDialog
+            )
         }
     }
 }
 
 @Composable
-fun ProfileCard(title: String, iconResId: Int, onClick: () -> Unit) {
+fun ProfileCard(title: Int, iconResId: Int, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(8.dp)
             .clickable { onClick() },
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = BorderStroke(1.dp, Color.LightGray)
+        border = BorderStroke(1.dp, BlackLight300)
     ) {
         Row(
             modifier = Modifier
@@ -212,10 +242,10 @@ fun ProfileCard(title: String, iconResId: Int, onClick: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(text = title, style = Typography.titleLarge)
+            Text(text = stringResource(id = title), style = Typography.titleLarge)
             Icon(
                 painter = painterResource(id = iconResId),
-                contentDescription = title,
+                contentDescription = stringResource(id = title),
                 modifier = Modifier.size(24.dp)
             )
         }

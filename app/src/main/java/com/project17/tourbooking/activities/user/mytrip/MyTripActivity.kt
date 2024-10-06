@@ -28,12 +28,12 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.google.firebase.Timestamp
 import com.project17.tourbooking.activities.user.search.SearchBarSection
-import com.project17.tourbooking.activities.user.search.SearchViewModel
-import com.project17.tourbooking.helper.FirestoreHelper
-import com.project17.tourbooking.models.Review
+import com.project17.tourbooking.activities.user.search.viewmodel.SearchViewModel
+import com.project17.tourbooking.helper.firestore_helper.FirestoreHelper
 import com.project17.tourbooking.ui.theme.Typography
 import com.project17.tourbooking.models.Tour
 import com.project17.tourbooking.navigates.NavigationItems
+import com.project17.tourbooking.ui.theme.BlackLight300
 import com.project17.tourbooking.utils.composables.RequireLogin
 import com.project17.tourbooking.viewmodels.AuthState
 import com.project17.tourbooking.viewmodels.AuthViewModel
@@ -54,45 +54,45 @@ fun MyTripScreen(searchViewModel: SearchViewModel, navController: NavController,
     LaunchedEffect(authState.value, searchViewModel.inputValue.value, refreshNeeded) {
         when (authState.value) {
             is AuthState.Authenticated -> {
-                val currentUser = authViewModel.auth.currentUser
+                val currentUser = authViewModel.getCurrentUser()
                 val currentEmail = currentUser?.email
 
                 if (currentEmail != null) {
                     tours.clear()
                     tourToBillIds.clear() // Clear the map at the start
-
-                    FirestoreHelper.getBillsByEmail(currentEmail) { bills ->
-                        bills.forEach { bill ->
-                            FirestoreHelper.getBillDetailsByBillId(bill.id) { billDetails ->
-                                val billIds = mutableListOf<String>()
-                                billDetails.forEach { billDetail ->
-                                    FirestoreHelper.getTicketById(billDetail.ticketId) { ticket ->
-                                        ticket?.let { nonNullTicket ->
-                                            FirestoreHelper.getTourById2(nonNullTicket.tourId) { tour ->
-                                                tour?.let { nonNullTour ->
-                                                    // Add the bill ID to the mapping
-                                                    billIds.add(bill.id)
-
-                                                    if (tours.none { it.first == nonNullTicket.tourId }) {
-                                                        tours.add(nonNullTicket.tourId to nonNullTour)
-                                                    }
-
-                                                    // Update the map with the list of bill IDs
-                                                    tourToBillIds[nonNullTicket.tourId] = billIds
-
-                                                    // Filter tours based on search input
-                                                    filteredTours.clear()
-                                                    filteredTours.addAll(
-                                                        tours.filter { it.second.name.contains(searchViewModel.inputValue.value, ignoreCase = true) }
-                                                    )
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+//TODO: adsf
+//                    FirestoreHelper.getBillsByEmail(currentEmail) { bills ->
+//                        bills.forEach { bill ->
+//                            FirestoreHelper.getBillDetailsByBillId(bill.id) { billDetails ->
+//                                val billIds = mutableListOf<String>()
+//                                billDetails.forEach { billDetail ->
+//                                    FirestoreHelper.getTicketById(billDetail.ticketId) { ticket ->
+//                                        ticket?.let { nonNullTicket ->
+//                                            FirestoreHelper.getTourById2(nonNullTicket.tourId) { tour ->
+//                                                tour?.let { nonNullTour ->
+//                                                    // Add the bill ID to the mapping
+//                                                    billIds.add(bill.id)
+//
+//                                                    if (tours.none { it.first == nonNullTicket.tourId }) {
+//                                                        tours.add(nonNullTicket.tourId to nonNullTour)
+//                                                    }
+//
+//                                                    // Update the map with the list of bill IDs
+//                                                    tourToBillIds[nonNullTicket.tourId] = billIds
+//
+//                                                    // Filter tours based on search input
+//                                                    filteredTours.clear()
+//                                                    filteredTours.addAll(
+//                                                        tours.filter { it.second.name.contains(searchViewModel.inputValue.value, ignoreCase = true) }
+//                                                    )
+//                                                }
+//                                            }
+//                                        }
+//                                    }
+//                                }
+//                            }
+//                        }
+//                    }
                 }
             }
             is AuthState.Error -> {
@@ -196,20 +196,23 @@ fun TourItem(
             onSubmit = {
                 val email = authViewModel.currentUserEmail ?: ""
                 if (email.isNotEmpty()) {
-                    val review = Review(
-                        rating = (rating * 10).toInt() / 10.0,
-                        comment = comment,
-                        email = email,
-                        tourId = documentId
-                    )
-                    FirestoreHelper.addReview(review) { success, exception ->
-                        if (success) {
-                            Toast.makeText(context, "Review added successfully", Toast.LENGTH_SHORT).show()
-                        } else {
-                            val errorMessage = exception?.localizedMessage ?: "Failed to add review"
-                            Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
-                        }
-                    }
+//                    val review = Review(
+//                        //TODO:afd
+//                        id = "",
+//                        rating = (rating * 10).toInt() / 10.0,
+//                        comment = comment,
+//                        createdDate = Timestamp.now(),
+//                        accountId = review.accountId,
+//                        tourId = ""
+//                    )
+//                    FirestoreHelper.addReview(review) { success, exception ->
+//                        if (success) {
+//                            Toast.makeText(context, "Review added successfully", Toast.LENGTH_SHORT).show()
+//                        } else {
+//                            val errorMessage = exception?.localizedMessage ?: "Failed to add review"
+//                            Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+//                        }
+//                    }
                 } else {
                     Toast.makeText(context, "User not logged in", Toast.LENGTH_SHORT).show()
                 }
@@ -229,7 +232,7 @@ fun TourItem(
                 navController.navigate(NavigationItems.TripBookedDetail.route + "/${billIds.first()}")
             },
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = BorderStroke(1.dp, Color.LightGray)
+        border = BorderStroke(1.dp, BlackLight300)
     ) {
         Row(
             modifier = Modifier
@@ -242,7 +245,8 @@ fun TourItem(
             ) {
                 Text(text = tour.name, style = Typography.titleLarge)
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(text = "Destination: ${tour.destination}", style = Typography.bodyLarge)
+                //TODO: asdf
+                Text(text = "Destination: ", style = Typography.bodyLarge)
                 Spacer(modifier = Modifier.height(8.dp))
 
                 val formattedDate = formatTimestampToDate(tour.startDate)

@@ -29,9 +29,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.foundation.layout.Spacer
-import com.project17.tourbooking.models.TourWithId
-import com.project17.tourbooking.helper.FirestoreHelper
-import kotlinx.coroutines.launch
+import com.project17.tourbooking.helper.firestore_helper.FirestoreHelper
+import com.project17.tourbooking.models.Tour
 
 @Composable
 fun BillDetailScreen(
@@ -45,7 +44,7 @@ fun BillDetailScreen(
     var ticketQuantity by remember { mutableStateOf(0) }
     var totalAmount by remember { mutableStateOf(0) }
     var bookingDate by remember { mutableStateOf<Date?>(null) }
-    val toursWithIds = remember { mutableStateListOf<TourWithId>() }
+    val tours = remember { mutableStateListOf<Tour>() }
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(billId) {
@@ -56,37 +55,37 @@ fun BillDetailScreen(
             }
         }
 
-        val loadedToursWithIds = FirestoreHelper.loadToursWithIds()
-        toursWithIds.clear()
-        toursWithIds.addAll(loadedToursWithIds)
-
-        FirestoreHelper.getBillDetailsByBillId(billId) { billDetails ->
-            if (billDetails.isNotEmpty()) {
-                val billDetail = billDetails.first()
-                ticketQuantity = billDetail.quantity
-
-                // Use a coroutine scope to handle async work
-                scope.launch {
-                    FirestoreHelper.getTourIdByTicketId(billDetail.ticketId) { tourId ->
-                        tourId?.let { id ->
-                            val tour = toursWithIds.find { tourWithId -> tourWithId.id == id }
-                            tour?.let { tourDetails ->
-                                tourImage = tourDetails.tour.image
-                                tourName = tourDetails.tour.name
-                                destination = tourDetails.tour.destination
-
-                                // Convert Timestamp to Date and format
-                                val date = tourDetails.tour.startDate.toDate()
-                                startDate = date?.let {
-                                    // Format the date as needed
-                                    SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(it)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+//        val loadedToursWithIds = FirestoreHelper.loadToursWithIds()
+//        toursWithIds.clear()
+//        toursWithIds.addAll(loadedToursWithIds)
+//
+//        FirestoreHelper.getBillDetailsByBillId(billId) { billDetails ->
+//            if (billDetails.isNotEmpty()) {
+//                val billDetail = billDetails.first()
+//                ticketQuantity = billDetail.quantity
+//
+//                // Use a coroutine scope to handle async work
+//                scope.launch {
+//                    FirestoreHelper.getTourIdByTicketId(billDetail.ticketId) { tourId ->
+//                        tourId?.let { id ->
+//                            val tour = toursWithIds.find { tourWithId -> tourWithId.id == id }
+//                            tour?.let { tourDetails ->
+//                                tourImage = tourDetails.tour.image
+//                                tourName = tourDetails.tour.name
+//                                destination = tourDetails.tour.destination
+//
+//                                // Convert Timestamp to Date and format
+//                                val date = tourDetails.tour.startDate.toDate()
+//                                startDate = date?.let {
+//                                    // Format the date as needed
+//                                    SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(it)
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//        }
     }
 
     // UI content

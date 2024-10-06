@@ -1,6 +1,6 @@
 package com.project17.tourbooking.activities.user.search
 
-import com.project17.tourbooking.helper.FirestoreHelper
+import com.project17.tourbooking.helper.firestore_helper.FirestoreHelper
 import android.annotation.SuppressLint
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -20,9 +20,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -35,6 +37,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,63 +47,43 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.project17.tourbooking.R
-import com.project17.tourbooking.models.Category
-import com.project17.tourbooking.models.CategoryWithId
-import com.project17.tourbooking.models.Review
-import com.project17.tourbooking.models.Ticket
-import com.project17.tourbooking.models.TourWithId
+import com.project17.tourbooking.activities.user.search.viewmodel.SearchViewModel
+import com.project17.tourbooking.constant.FILTER_RATE_FROM
+import com.project17.tourbooking.constant.MAX_HISTORY_ITEM_DISPLAY
+import com.project17.tourbooking.models.Tour
 import com.project17.tourbooking.navigates.NavigationItems
 import com.project17.tourbooking.ui.theme.BlackDark900
 import com.project17.tourbooking.ui.theme.BlackLight100
 import com.project17.tourbooking.ui.theme.BlackLight300
+import com.project17.tourbooking.ui.theme.BrandDefault500
 import com.project17.tourbooking.ui.theme.Typography
 import com.project17.tourbooking.utils.composables.CategoryItem
 import com.project17.tourbooking.utils.composables.CommonAlertDialog
 import com.project17.tourbooking.utils.composables.TourCardInHorizontal
+import com.project17.tourbooking.utils.composables.TourCardInVertical
 import com.project17.tourbooking.viewmodels.AppViewModel
-
-
-
-const val MAX_HISTORY_ITEM_DISPLAY = 4
 
 @Composable
 fun SearchScreen(
     navController: NavHostController = rememberNavController(),
     appViewModel: AppViewModel = viewModel(),
-    searchViewModel: SearchViewModel = viewModel()
+    searchViewModel: SearchViewModel = viewModel(),
+    categoryId: String = ""
 ) {
-    val toursWithIds = remember { mutableStateListOf<TourWithId>() }
-    val categories = remember { mutableStateListOf<Category>() }
-    val reviews = remember { mutableStateListOf<Review>() }
-    val tickets = remember { mutableStateListOf<Ticket>() }
+    var tours by remember {
+        mutableStateOf<List<Tour>>(emptyList())
+    }
 
     LaunchedEffect(Unit) {
-        val loadedToursWithIds = FirestoreHelper.loadToursWithIds()
-        val loadedCategories = FirestoreHelper.loadCategories()
-        val loadedReviews = FirestoreHelper.loadReviews()
-        val loadedTickets = FirestoreHelper.loadTickets()
-
-        toursWithIds.clear()
-        toursWithIds.addAll(loadedToursWithIds)
-
-        categories.clear()
-        categories.addAll(loadedCategories)
-
-        reviews.clear()
-        reviews.addAll(loadedReviews)
-
-        tickets.clear()
-        tickets.addAll(loadedTickets)
-
-        // Create TourPackage from data
-        val tourPackages = createTourPackages(toursWithIds, reviews, tickets)
-        searchViewModel.updateTourList(tourPackages) // Update tour list in SearchViewModel
+        tours = FirestoreHelper.getAllTours()
+        searchViewModel.tourList = tours.toMutableStateList()
     }
 
     Column(
@@ -108,19 +91,42 @@ fun SearchScreen(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Spacer(modifier = Modifier.height(16.dp).fillMaxWidth())
+        Spacer(
+            modifier = Modifier
+                .height(16.dp)
+                .fillMaxWidth()
+        )
         SearchHeaderSection(navController, searchViewModel, appViewModel)
-        Spacer(modifier = Modifier.height(16.dp).fillMaxWidth())
+        Spacer(
+            modifier = Modifier
+                .height(16.dp)
+                .fillMaxWidth()
+        )
         SearchBarSection(searchViewModel)
-        Spacer(modifier = Modifier.height(16.dp).fillMaxWidth())
+        Spacer(
+            modifier = Modifier
+                .height(16.dp)
+                .fillMaxWidth()
+        )
 
-        if (appViewModel.isChosenCategory.value) {
-            SearchWithCategoryScreenContent(tourList = searchViewModel.tourList, navController = navController)
+        if (!categoryId.isNullOrEmpty()) {
+            SearchWithCategoryScreenContent(
+                categoryId = categoryId,
+                searchViewModel = searchViewModel,
+                navController = navController
+            )
         } else {
             if (!searchViewModel.isSearched.value) {
-                DefaultSearchScreenContent(navController = navController, viewModel = searchViewModel)
+                DefaultSearchScreenContent(
+                    navController = navController,
+                    viewModel = searchViewModel
+                )
             } else {
-                SearchedScreenContent(tourList = searchViewModel.tourList, navController = navController, searchViewModel = searchViewModel)
+                SearchedScreenContent(
+                    tourList = searchViewModel.tourList,
+                    navController = navController,
+                    searchViewModel = searchViewModel
+                )
             }
         }
     }
@@ -128,16 +134,20 @@ fun SearchScreen(
 
 
 @Composable
-fun DefaultSearchScreenContent(navController: NavHostController, viewModel: SearchViewModel){
+fun DefaultSearchScreenContent(navController: NavHostController, viewModel: SearchViewModel) {
     Column(Modifier.fillMaxWidth()) {
         SearchHistorySection(viewModel)
-        Spacer(modifier = Modifier
-            .weight(1f)
-            .fillMaxWidth())
-//        FavoritePlaceSection(navController = navController)
-        Spacer(modifier = Modifier
-            .height(16.dp)
-            .fillMaxWidth())
+        Spacer(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+        )
+        FavoritePlaceSection(navController = navController)
+        Spacer(
+            modifier = Modifier
+                .height(16.dp)
+                .fillMaxWidth()
+        )
     }
 }
 
@@ -148,8 +158,6 @@ fun SearchedScreenContent(
     navController: NavHostController,
     searchViewModel: SearchViewModel
 ) {
-    var lazyColumnHeight by remember { mutableStateOf(0.dp) }
-
     Column(Modifier.fillMaxWidth()) {
         Text(
             text = stringResource(
@@ -178,37 +186,40 @@ fun SearchedScreenContent(
 }
 
 
-
 @Composable
 fun SearchWithCategoryScreenContent(
-    tourList: SnapshotStateList<Tour>,
+    categoryId: String,
+    searchViewModel: SearchViewModel,
     navController: NavHostController
 ) {
-    var categories by remember { mutableStateOf<List<CategoryWithId>>(emptyList()) }
-    var selectedIndex by remember { mutableStateOf(-1) }
+    val categories = searchViewModel.categories
+    var isInitialized by remember { mutableStateOf(false) }
 
-    // Load categories when the composable is first displayed
-    LaunchedEffect(Unit) {
-        categories = FirestoreHelper.loadCategories2()
-    }
-
-    // Filter tours based on selected category
-    val filteredTours = if (selectedIndex != -1) {
-        tourList.filter { it.categoryId == categories[selectedIndex].id }
-    } else {
-        tourList
+    LaunchedEffect(categories) {
+        if (categories.isNotEmpty() && !isInitialized) {
+            val initialIndex = categories.indexOfFirst { it.id == categoryId }
+            searchViewModel.categorySelectedIndex.value = initialIndex
+            searchViewModel.filterTourByNameCategoryStarAndPrice(categoryId)
+            isInitialized = true
+        }
     }
 
     Column {
         LazyRow(
             modifier = Modifier.padding(horizontal = 8.dp)
         ) {
-            itemsIndexed(categories) { index, categoryWithId ->
+            itemsIndexed(categories) { index, category ->
                 CategoryItem(
-                    category = categoryWithId.category,
-                    isSelected = selectedIndex == index,
+                    category = category,
+                    isSelected = searchViewModel.categorySelectedIndex.value == index,
                     onClick = {
-                        selectedIndex = if (selectedIndex == index) -1 else index
+                        if (searchViewModel.categorySelectedIndex.value == index) {
+                            searchViewModel.categorySelectedIndex.value = -1
+                            searchViewModel.filterTourByNameCategoryStarAndPrice()
+                        } else {
+                            searchViewModel.categorySelectedIndex.value = index
+                            searchViewModel.filterTourByNameCategoryStarAndPrice(category.id)
+                        }
                     }
                 )
             }
@@ -216,21 +227,27 @@ fun SearchWithCategoryScreenContent(
 
         Spacer(Modifier.height(16.dp))
 
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-        ) {
-            items(filteredTours) { item ->
-                TourCardInHorizontal(
-                    tour = item,
-                    navController = navController
-                )
+        if (searchViewModel.isLoading.value) {
+            CircularProgressIndicator(
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+                color = BrandDefault500
+            )
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            ) {
+                items(searchViewModel.tourList) { item ->
+                    TourCardInHorizontal(
+                        tour = item,
+                        navController = navController
+                    )
+                }
             }
         }
     }
 }
-
 
 
 @Composable
@@ -238,12 +255,12 @@ fun SearchHeaderSection(
     navController: NavHostController,
     searchViewModel: SearchViewModel,
     appViewModel: AppViewModel
-){
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween
-    ){
+    ) {
         Icon(
             painter = painterResource(id = R.drawable.ic_back),
             contentDescription = stringResource(id = R.string.back_button_description_text),
@@ -254,12 +271,12 @@ fun SearchHeaderSection(
         )
 
         Text(
-            text = stringResource(id = if(appViewModel.isChosenCategory.value) R.string.search_with_category_text else R.string.search_screen_name_text),
+            text = stringResource(id = if (appViewModel.isChosenCategory.value) R.string.search_with_category_text else R.string.search_screen_name_text),
             style = Typography.titleLarge.copy(fontWeight = FontWeight.Bold),
             color = BlackDark900
         )
 
-        if(searchViewModel.isSearched.value || appViewModel.isChosenCategory.value){
+        if (searchViewModel.isSearched.value || appViewModel.isChosenCategory.value) {
             Icon(
                 painter = painterResource(id = R.drawable.ic_search_filter),
                 contentDescription = stringResource(id = R.string.search_filter_icon_description_text),
@@ -270,8 +287,7 @@ fun SearchHeaderSection(
                     }
                 )
             )
-        }
-        else{
+        } else {
             Spacer(modifier = Modifier)
         }
     }
@@ -283,12 +299,11 @@ fun SearchBarSection(searchViewModel: SearchViewModel) {
         value = searchViewModel.inputValue.value,
         onValueChange = {
             searchViewModel.inputValue.value = it
-            if (it.isNotEmpty()) {
-                searchViewModel.isSearched.value = true
-            } else {
-                searchViewModel.isSearched.value = false
-            }
-            searchViewModel.filterToursByName() // Filter tours as user types
+            searchViewModel.isSearched.value = it.isNotEmpty()
+            searchViewModel.
+            filterTourByNameCategoryStarAndPrice(categoryId =
+                if (searchViewModel.categorySelectedIndex.intValue !in searchViewModel.categories.indices) ""
+                else searchViewModel.categories[searchViewModel.categorySelectedIndex.value].id)
         },
         modifier = Modifier
             .fillMaxWidth()
@@ -303,7 +318,9 @@ fun SearchBarSection(searchViewModel: SearchViewModel) {
                     .clickable(onClick = {
                         if (searchViewModel.inputValue.value.isNotEmpty()) {
                             searchViewModel.addHistoryItem(searchViewModel.inputValue.value)
-                            searchViewModel.filterToursByName() // Filter tours when search icon is clicked
+                            searchViewModel.filterTourByNameCategoryStarAndPrice(categoryId =
+                                if (searchViewModel.categorySelectedIndex.intValue !in searchViewModel.categories.indices) ""
+                                else searchViewModel.categories[searchViewModel.categorySelectedIndex.value].id)
                         }
                     })
             )
@@ -319,29 +336,28 @@ fun SearchBarSection(searchViewModel: SearchViewModel) {
             unfocusedContainerColor = BlackLight100,
             focusedContainerColor = BlackLight100,
             unfocusedIndicatorColor = Color.Transparent,
-            focusedIndicatorColor = Color.Transparent
+            focusedIndicatorColor = Color.Transparent,
+            cursorColor = BrandDefault500
         ),
         keyboardActions = KeyboardActions(onSearch = {
             if (searchViewModel.inputValue.value.isNotEmpty()) {
                 searchViewModel.addHistoryItem(searchViewModel.inputValue.value)
-                searchViewModel.filterToursByName() // Filter tours on search action
+                searchViewModel.filterTourByNameCategoryStarAndPrice()
             }
         }),
+        keyboardOptions = KeyboardOptions(
+            imeAction = ImeAction.Search
+        ),
         maxLines = 1
     )
 }
 
-fun addHistoryItemIfNotExistInList(viewModel: SearchViewModel){
-    if(!viewModel.historyItems.any(viewModel.inputValue.value::equals)){
-        viewModel.addHistoryItem(viewModel.inputValue.value)
-    }
-}
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
 fun SearchHistorySection(
     viewModel: SearchViewModel,
-){
+) {
     BoxWithConstraints(
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -384,7 +400,7 @@ fun SearchHistoryItem(
     viewModel: SearchViewModel,
     onMeasured: (Dp) -> Unit = {},
     onDeleteClicked: () -> Unit = {}
-){
+) {
     val density = LocalDensity.current
     var isDeleteClicked by remember {
         mutableStateOf(false)
@@ -400,14 +416,15 @@ fun SearchHistoryItem(
             .clickable(onClick = {
                 viewModel.inputValue.value = historyContent
                 viewModel.isSearched.value = true
-                addHistoryItemIfNotExistInList(viewModel)
+                viewModel.addHistoryItem(historyContent)
             }),
         verticalAlignment = Alignment.CenterVertically
-    ){
+    ) {
         Icon(
             painter = painterResource(id = R.drawable.ic_search_history),
             contentDescription = stringResource(
-                id = R.string.search_history_icon_description_text),
+                id = R.string.search_history_icon_description_text
+            ),
             tint = BlackLight300
         )
 
@@ -430,14 +447,14 @@ fun SearchHistoryItem(
             })
         )
 
-        if(isDeleteClicked){
+        if (isDeleteClicked) {
             CommonAlertDialog(
                 isDialogVisible = true,
                 onDismiss = { isDeleteClicked = !isDeleteClicked },
                 onConfirm = {
                     isDeleteClicked = !isDeleteClicked
                     onDeleteClicked()
-                            },
+                },
                 title = R.string.delete_history_item_alert_dialog_title_text,
                 message = R.string.delete_history_item_alert_dialog_message_text,
                 confirmButtonText = R.string.delete_history_item_alert_dialog_confirm_button_text,
@@ -447,3 +464,53 @@ fun SearchHistoryItem(
     }
     Spacer(modifier = Modifier.height(16.dp))
 }
+
+@Composable
+fun FavoritePlaceSection(
+    navController: NavHostController,
+    modifier: Modifier = Modifier
+) {
+    val tours = remember { mutableStateListOf<Tour>() }
+
+    LaunchedEffect(Unit) {
+        val highRatedTours = FirestoreHelper.getToursFromRating(FILTER_RATE_FROM)
+        tours.addAll(highRatedTours)
+    }
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = stringResource(id = R.string.favorite_place_text),
+                style = Typography.headlineMedium
+            )
+            Text(
+                text = stringResource(id = R.string.explore_text),
+                style = Typography.labelSmall,
+                color = BlackLight300,
+                modifier = Modifier.clickable(onClick = {
+                    navController.navigate(NavigationItems.WishList.route)
+                })
+            )
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+
+        LazyRow(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(250.dp)
+        ) {
+            items(tours) { tour ->
+                TourCardInVertical(tour = tour, navController = navController)
+            }
+        }
+    }
+}
+

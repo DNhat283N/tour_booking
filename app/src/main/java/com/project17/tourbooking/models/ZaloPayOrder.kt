@@ -1,7 +1,7 @@
 package com.project17.tourbooking.models
 
 import com.project17.tourbooking.constant.AppInfo
-import com.project17.tourbooking.helper.Helpers
+import com.project17.tourbooking.helper.zalo_pay_helper.Helpers
 import java.util.Date
 
 data class ZaloPayOrder(

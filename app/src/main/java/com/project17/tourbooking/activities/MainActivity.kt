@@ -18,11 +18,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.rememberNavController
+import com.project17.tourbooking.activities.user.pay.viewmodel.PayViewModel
+import com.project17.tourbooking.activities.user.search.viewmodel.SearchViewModel
 import com.project17.tourbooking.constant.AppInfo.APP_ID
 import com.project17.tourbooking.navigates.NavigationGraph
 import com.project17.tourbooking.navigates.VisibilityBottomBarScaffold
 import com.project17.tourbooking.ui.theme.TourBookingTheme
 import com.project17.tourbooking.viewmodels.AppViewModel
+import com.project17.tourbooking.viewmodels.AuthViewModel
 import vn.zalopay.sdk.Environment
 import vn.zalopay.sdk.ZaloPaySDK
 
@@ -38,6 +41,9 @@ class MainActivity : ComponentActivity() {
                     mutableStateOf(true)
                 }
                 val appViewModel: AppViewModel = viewModel()
+                val payViewModel: PayViewModel = viewModel()
+                val authViewModel: AuthViewModel = viewModel()
+                val searchViewModel: SearchViewModel = viewModel()
                 VisibilityBottomBarScaffold(
                     navController = navController,
                     isBottomBarVisible = isBottomBarVisible
@@ -51,7 +57,10 @@ class MainActivity : ComponentActivity() {
                                     visible ->
                                 isBottomBarVisible = visible
                             },
-                            appViewModel = appViewModel
+                            appViewModel = appViewModel,
+                            authViewModel = authViewModel,
+                            payViewModel = payViewModel,
+                            searchViewModel = searchViewModel
                         )
                     }
                 }
@@ -60,14 +69,6 @@ class MainActivity : ComponentActivity() {
 
         val policy = StrictMode.ThreadPolicy.Builder().permitAll().build()
         StrictMode.setThreadPolicy(policy)
-
-        try {
-            ZaloPaySDK.init(APP_ID, Environment.SANDBOX)
-            Log.d("ZaloPayInit", "ZaloPay SDK initialized successfully")
-        } catch (e: Exception) {
-            Log.e("ZaloPayInitError", "Error initializing ZaloPay SDK: ${e.message}")
-            e.printStackTrace()
-        }
     }
 
     override fun onNewIntent(intent: Intent) {

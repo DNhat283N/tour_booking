@@ -1,14 +1,11 @@
 package com.project17.tourbooking.activities.user.home
 
-import com.project17.tourbooking.helper.FirestoreHelper
 import android.os.Bundle
-import android.util.Log
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
@@ -20,7 +17,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -50,38 +47,41 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import com.project17.tourbooking.R
+import com.project17.tourbooking.constant.CATEGORY_GRID_COLUMN
+import com.project17.tourbooking.constant.FILTER_RATE_FROM
+import com.project17.tourbooking.constant.TOP_BOOKING_TOUR_LIMIT
+import com.project17.tourbooking.helper.firestore_helper.FirestoreHelper
+import com.project17.tourbooking.models.Category
+import com.project17.tourbooking.models.Tour
 import com.project17.tourbooking.navigates.NavigationItems
 import com.project17.tourbooking.ui.theme.BlackDark900
 import com.project17.tourbooking.ui.theme.BlackLight100
 import com.project17.tourbooking.ui.theme.BlackLight300
 import com.project17.tourbooking.ui.theme.TourBookingTheme
 import com.project17.tourbooking.ui.theme.Typography
-import com.project17.tourbooking.models.Category
-import com.project17.tourbooking.models.Tour
-import com.project17.tourbooking.utils.composables.CommonAlertDialog
 import com.project17.tourbooking.utils.composables.CategoryItem
+import com.project17.tourbooking.utils.composables.CommonAlertDialog
 import com.project17.tourbooking.utils.composables.TourCardInHorizontal
 import com.project17.tourbooking.utils.composables.TourCardInVertical
+import com.project17.tourbooking.viewmodels.AppViewModel
 import com.project17.tourbooking.viewmodels.AuthState
 import com.project17.tourbooking.viewmodels.AuthViewModel
-import com.project17.tourbooking.viewmodels.AppViewModel
 import kotlin.system.exitProcess
 
 class HomeActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         setContent {
             TourBookingTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
@@ -93,53 +93,63 @@ class HomeActivity : ComponentActivity() {
 }
 
 @Composable
-fun HomeScreen(modifier: Modifier = Modifier, navController: NavHostController = rememberNavController(),
-               appViewModel: AppViewModel = viewModel(), authViewModel: AuthViewModel = viewModel()) {
+fun HomeScreen(
+    modifier: Modifier = Modifier, navController: NavHostController = rememberNavController(),
+    appViewModel: AppViewModel = viewModel(), authViewModel: AuthViewModel = viewModel()
+) {
     var isDialogVisible by remember {
         mutableStateOf(false)
     }
-    BackHandler (
+    BackHandler(
         onBack = {
             isDialogVisible = !isDialogVisible
         }
     )
-    if(isDialogVisible){
+    if (isDialogVisible) {
         CommonAlertDialog(
             isDialogVisible = true,
             onDismiss = { isDialogVisible = false },
             onConfirm = {
                 exitProcess(0)
-                        },
+            },
             title = R.string.exit_app_alert_dialog_title_text,
             message = R.string.exit_app_alert_dialog_message_text,
-            confirmButtonText = R.string.exit_app_alert_dialog_confirm_button_text,
-            dismissButtonText = R.string.exit_app_alert_dialog_dismiss_button_text
+            confirmButtonText = R.string.confirm_button_text,
+            dismissButtonText = R.string.cancel_button_text
         )
     }
-    Column(modifier = modifier
-        .fillMaxSize()
-        .background(Color.White)
-        .padding(
-            top = 24.dp,
-            start = 16.dp,
-            end = 16.dp
-        )
-        .verticalScroll(rememberScrollState())) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color.White)
+            .padding(
+                top = 24.dp,
+                start = 16.dp,
+                end = 16.dp
+            )
+            .verticalScroll(rememberScrollState())
+    ) {
         HeaderSection(navController = navController, authViewModel = authViewModel)
         Spacer(modifier = Modifier.height(16.dp))
-        SearchBarSection(navController, appViewModel)
-        Spacer(modifier = Modifier
-            .height(24.dp)
-            .fillMaxWidth())
-        ChooseCategorySection(navController = navController, appViewModel =  appViewModel)
-        Spacer(modifier = Modifier
-            .height(24.dp)
-            .fillMaxWidth())
-        FavoritePlaceSection(navController = navController)
-        Spacer(modifier = Modifier
-            .height(24.dp)
-            .fillMaxWidth())
-        PopularPackageSection(navController = navController)
+        SearchBarSection(navController)
+        Spacer(
+            modifier = Modifier
+                .height(24.dp)
+                .fillMaxWidth()
+        )
+        ChooseCategorySection(navController = navController, appViewModel = appViewModel)
+        Spacer(
+            modifier = Modifier
+                .height(24.dp)
+                .fillMaxWidth()
+        )
+        PopularTourSection(navController = navController)
+        Spacer(
+            modifier = Modifier
+                .height(24.dp)
+                .fillMaxWidth()
+        )
+        MostBookedSection(navController = navController)
     }
 }
 
@@ -148,47 +158,31 @@ fun HeaderSection(
     modifier: Modifier = Modifier,
     hasUnreadNotification: Boolean = false,
     navController: NavHostController,
-    authViewModel: AuthViewModel // Thêm AuthViewModel để lấy thông tin người dùng
+    authViewModel: AuthViewModel
 ) {
-    val context = LocalContext.current
 
-    var name by remember { mutableStateOf<String?>(null) }
+    var userName by remember { mutableStateOf<String?>(null) }
     var avatarUrl by remember { mutableStateOf<String?>(null) }
 
-    // Watch the authentication state
     val authState = authViewModel.authState.observeAsState()
 
-    // LaunchedEffect to fetch user data when authenticated
     LaunchedEffect(authState.value) {
         when (authState.value) {
             is AuthState.Authenticated -> {
-                val currentUser = authViewModel.auth.currentUser
-                val currentEmail = currentUser?.email
+                val currentUser = authViewModel.getCurrentUser()
 
-                if (currentEmail != null) {
-                    // Fetch customer information from Firestore
-                    FirestoreHelper.getCustomerByEmail(currentEmail) { customer ->
-                        customer?.let {
-                            name = it.fullName // Set the name
-                        }
-                    }
-
-                    // Fetch avatar URL from Firestore
-                    FirestoreHelper.getAvatarUrlFromAccount(currentEmail) { url ->
-                        avatarUrl = url // Set the avatar URL
-                    }
+                FirestoreHelper.getAvatarUrlFromAccountId(currentUser!!.uid) { url ->
+                    avatarUrl = url
                 }
-            }
-            is AuthState.Error -> {
-                val errorMessage = (authState.value as AuthState.Error).message
-                Log.e("HeaderSection", errorMessage)
-            }
-            is AuthState.Unauthenticated -> {
+                FirestoreHelper.getUserNameByAccountId(currentUser.uid) { userName = it }
 
             }
+            is AuthState.Error -> {}
+            is AuthState.Unauthenticated -> {}
             else -> Unit
         }
     }
+
 
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -205,22 +199,21 @@ fun HeaderSection(
                 contentDescription = stringResource(id = R.string.avatar_description_text),
                 placeholder = painterResource(id = R.drawable.default_avatar),
                 modifier = Modifier
-                    .width(50.dp)
-                    .height(50.dp)
+                    .size(50.dp)
                     .clip(RoundedCornerShape(50.dp))
                     .clickable(onClick = {
                         navController.navigate(NavigationItems.Profile.route)
                     })
+                    .border(1.dp, BlackLight300, RoundedCornerShape(50.dp))
             )
 
             Text(
-                text = "Hi, ${name ?: stringResource(id = R.string.default_username)}!",
+                text = "Hi, ${userName ?: stringResource(id = R.string.default_username)}!",
                 modifier = Modifier.padding(start = 10.dp),
                 style = Typography.titleMedium
             )
         }
 
-        // Notification Icon with Badge
         if (hasUnreadNotification) {
             BadgedBox(
                 badge = {
@@ -234,6 +227,7 @@ fun HeaderSection(
                     modifier = Modifier.clickable(onClick = {
                         // Navigate to NotificationActivity
                     })
+                        .size(30.dp)
                 )
             }
         } else {
@@ -241,13 +235,12 @@ fun HeaderSection(
                 painter = painterResource(id = R.drawable.ic_notification),
                 contentDescription = stringResource(id = R.string.icon_notification_description_text),
                 modifier = Modifier.clickable(onClick = {
-                    Toast.makeText(context, "Navigate to NotificationActivity", Toast.LENGTH_SHORT).show()
                 })
+                    .size(30.dp)
             )
         }
     }
 
-    // Spacer and extra text section
     Spacer(modifier = Modifier.height(16.dp))
 
     Text(
@@ -261,19 +254,17 @@ fun HeaderSection(
 
 
 @Composable
-fun SearchBarSection(navController: NavHostController, appViewModel: AppViewModel){
+fun SearchBarSection(navController: NavHostController) {
     TextField(
         value = "",
         onValueChange = {
         },
         interactionSource = remember {
             MutableInteractionSource()
-        }.also {
-            source ->
+        }.also { source ->
             LaunchedEffect(source) {
                 source.interactions.collect {
                     if (it is PressInteraction.Release) {
-                        appViewModel.isChosenCategory.value = false
                         navController.navigate(NavigationItems.Search.route)
                     }
                 }
@@ -306,7 +297,11 @@ fun SearchBarSection(navController: NavHostController, appViewModel: AppViewMode
 }
 
 @Composable
-fun ChooseCategorySection(modifier: Modifier = Modifier, navController: NavHostController, appViewModel: AppViewModel) {
+fun ChooseCategorySection(
+    modifier: Modifier = Modifier,
+    navController: NavHostController,
+    appViewModel: AppViewModel
+) {
     LaunchedEffect(Unit) {
         appViewModel.loadCategories(FirestoreHelper)
     }
@@ -337,13 +332,17 @@ fun ChooseCategorySection(modifier: Modifier = Modifier, navController: NavHostC
             LazyRow {
                 items(appViewModel.categories) { category ->
                     CategoryItem(category = category, onClick = {
-                        appViewModel.isChosenCategory.value = true
-                        navController.navigate(route = NavigationItems.Search.route)
+                        navController.navigate(route = NavigationItems.Search.route + "/${category.id}")
                     })
                 }
             }
         } else {
-            CategoryGrid(items = appViewModel.categories, columns = 2, navController = navController, appViewModel = appViewModel)
+            CategoryGrid(
+                items = appViewModel.categories,
+                columns = CATEGORY_GRID_COLUMN,
+                navController = navController,
+                appViewModel = appViewModel
+            )
         }
     }
 }
@@ -375,14 +374,11 @@ fun CategoryGrid(
                             category = item,
                             isSelected = appViewModel.selectedCategory.value == item,
                             onClick = {
-                                appViewModel.selectCategory(item)  // Update selected category
-                                appViewModel.isChosenCategory.value = true
-                                navController.navigate(route = NavigationItems.Search.route)
+                                navController.navigate(route = NavigationItems.Search.route + "/${item.id}")
                             }
                         )
                     }
                 }
-                // Add spacers for any missing columns in the row
                 repeat(columns - rowItems.size) {
                     Spacer(modifier = Modifier.weight(itemWeight))
                 }
@@ -393,23 +389,21 @@ fun CategoryGrid(
 
 
 @Composable
-fun FavoritePlaceSection(
+fun PopularTourSection(
     navController: NavHostController,
     modifier: Modifier = Modifier
 ) {
     val tours = remember { mutableStateListOf<Tour>() }
 
     LaunchedEffect(Unit) {
-        val loadedTours = FirestoreHelper.loadTours()
-        val highRatedTours = loadedTours.filter { it.averageRating > 4.0 }
+        val highRatedTours = FirestoreHelper.getToursFromRating(FILTER_RATE_FROM)
         tours.addAll(highRatedTours)
     }
 
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .height(350.dp)
-    ){
+    ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth(),
@@ -417,7 +411,7 @@ fun FavoritePlaceSection(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                text = stringResource(id = R.string.favorite_place_text),
+                text = stringResource(id = R.string.popular_tour_text),
                 style = Typography.headlineMedium
             )
             Text(
@@ -425,7 +419,7 @@ fun FavoritePlaceSection(
                 style = Typography.labelSmall,
                 color = BlackLight300,
                 modifier = Modifier.clickable(onClick = {
-                    navController.navigate(NavigationItems.WishList.route )
+                    navController.navigate(NavigationItems.WishList.route)
                 })
             )
         }
@@ -434,7 +428,7 @@ fun FavoritePlaceSection(
         LazyRow(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(200.dp)
+                .height(250.dp)
         ) {
             items(tours) { tour ->
                 TourCardInVertical(tour = tour, navController = navController)
@@ -444,28 +438,21 @@ fun FavoritePlaceSection(
 }
 
 
-
 @Composable
-fun PopularPackageSection(modifier: Modifier = Modifier, navController: NavHostController) {
-    val packages = remember {
-        mutableStateListOf(
-//            TourPackage("Kuta Resort", "https://example.com/kuta_resort.jpg", 250.0, 4.5,
-//                "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."),
-//            TourPackage("Bali Beach", "https://example.com/bali_beach.jpg", 300.0, 4.7,
-//                "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."),
-//            TourPackage("Ubud Retreat", "https://example.com/ubud_retreat.jpg", 350.0, 4.8,
-//                "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."),
-//            TourPackage("Seminyak Villa", "https://example.com/seminyak_villa.jpg", 400.0, 4.6,
-//                "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.")
-        )
+fun MostBookedSection(modifier: Modifier = Modifier, navController: NavHostController) {
+    var packages by remember {
+        mutableStateOf<List<Tour>>(emptyList())
     }
-    var isSeeAllClicked by remember{
+    var isSeeAllClicked by remember {
         mutableStateOf(false)
     }
     var lazyColumnHeight by remember {
         mutableStateOf(0.dp)
     }
 
+    LaunchedEffect(Unit) {
+        packages = FirestoreHelper.getTopToursIsMostBooked(TOP_BOOKING_TOUR_LIMIT)
+    }
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -481,7 +468,7 @@ fun PopularPackageSection(modifier: Modifier = Modifier, navController: NavHostC
                 style = Typography.headlineMedium
             )
             Text(
-                text = if(!isSeeAllClicked) stringResource(id = R.string.see_all_text)
+                text = if (!isSeeAllClicked) stringResource(id = R.string.see_all_text)
                 else stringResource(id = R.string.collapse_text),
                 style = Typography.labelSmall,
                 color = BlackLight300,
@@ -492,7 +479,7 @@ fun PopularPackageSection(modifier: Modifier = Modifier, navController: NavHostC
         }
         Spacer(modifier = Modifier.height(8.dp))
 
-        if(!isSeeAllClicked){
+        if (!isSeeAllClicked) {
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -508,14 +495,13 @@ fun PopularPackageSection(modifier: Modifier = Modifier, navController: NavHostC
                     )
                 }
             }
-        }
-        else{
+        } else {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(lazyColumnHeight * packages.size)
             ) {
                 packages.forEach { item ->
+
                     TourCardInHorizontal(
                         tour = item,
                         navController = navController,
@@ -526,6 +512,13 @@ fun PopularPackageSection(modifier: Modifier = Modifier, navController: NavHostC
             }
         }
     }
-        Spacer(modifier = Modifier.height(40.dp))
+    Spacer(modifier = Modifier.height(40.dp))
 }
 
+@Composable
+@Preview
+fun HomePreview() {
+    TourBookingTheme {
+        HomeScreen()
+    }
+}

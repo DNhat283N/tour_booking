@@ -17,7 +17,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.paint
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -30,7 +29,8 @@ import com.project17.tourbooking.ui.theme.BlackWhite0
 import com.project17.tourbooking.ui.theme.Typography
 
 @Composable
-fun TourSummaryCard(tour: Tour) {
+fun TourSummaryCard(tour: Tour, location: String) {
+
     Box(
         Modifier
             .fillMaxWidth()
@@ -43,10 +43,10 @@ fun TourSummaryCard(tour: Tour) {
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()
         )
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .paint(painter = painterResource(id = R.drawable.fuji_mountain), contentScale = ContentScale.Crop)
         ) {
             Column(
                 Modifier
@@ -74,7 +74,7 @@ fun TourSummaryCard(tour: Tour) {
                         Spacer(modifier = Modifier.width(8.dp))
 
                         Text(
-                            text = tour.destination,
+                            text = location,
                             style = Typography.titleLarge,
                             color = BlackWhite0
                         )
@@ -82,7 +82,7 @@ fun TourSummaryCard(tour: Tour) {
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Text(
-                        text = stringResource(id = R.string.people_have_explored_text, 100),
+                        text = stringResource(id = R.string.people_have_explored_text, tour.bookingCount),
                         style = Typography.bodyLarge,
                         color = BlackWhite0
                     )

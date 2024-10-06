@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import coil.compose.rememberAsyncImagePainter
 import coil.compose.rememberImagePainter
 import com.project17.tourbooking.models.Category
 import com.project17.tourbooking.ui.theme.BlackLight100
@@ -48,12 +49,11 @@ fun CategoryItem(
                 .clickable(onClick = onClick),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Load image using Coil
             Image(
-                painter = rememberImagePainter(data = category.icon), // Use Coil's painter for URL
-                contentDescription = null, // Set to null for accessibility
+                painter = rememberAsyncImagePainter(model = category.image),
+                contentDescription = null,
                 modifier = Modifier
-                    .size(40.dp) // Adjust the size as per your design
+                    .size(50.dp)
                     .background(
                         color = BlackLight100,
                         shape = RoundedCornerShape(16.dp)
